@@ -1,6 +1,5 @@
 import { Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 
 const roleLabels: Record<string, string> = {
@@ -30,7 +29,6 @@ export function TopBar({ title }: TopBarProps) {
   return (
     <header className="h-16 flex items-center justify-between border-b border-topbar-border bg-topbar px-4 shrink-0">
       <div className="flex items-center gap-3">
-        <SidebarTrigger className="text-topbar-foreground" />
         <h1 className="text-xl font-bold text-topbar-foreground">{title}</h1>
       </div>
       <div className="flex items-center gap-4">
