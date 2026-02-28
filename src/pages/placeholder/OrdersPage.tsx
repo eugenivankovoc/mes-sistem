@@ -4,8 +4,6 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
-import { OrdersTableSkeleton } from "@/components/orders/OrdersTableSkeleton";
-import { OrdersEmptyState } from "@/components/orders/OrdersEmptyState";
 import { BulkActionBar } from "@/components/orders/BulkActionBar";
 import { CreateOrderModal } from "@/components/orders/CreateOrderModal";
 import { EditOrderModal } from "@/components/orders/EditOrderModal";
@@ -70,23 +68,19 @@ export default function OrdersPage() {
         customers={customers}
       />
 
-      {isLoading ? (
-        <OrdersTableSkeleton />
-      ) : orders.length === 0 ? (
-        <OrdersEmptyState onCreateClick={() => setCreateOpen(true)} />
-      ) : (
-        <OrdersTable
-          orders={orders}
-          selected={selected}
-          onSelect={handleSelect}
-          onSelectAll={handleSelectAll}
-          sortColumn={sortColumn}
-          sortDirection={sortDirection}
-          onSort={handleSort}
-          onEdit={setEditOrder}
-          onDuplicate={setDuplicateOrder}
-        />
-      )}
+      <OrdersTable
+        orders={orders}
+        selected={selected}
+        onSelect={handleSelect}
+        onSelectAll={handleSelectAll}
+        sortColumn={sortColumn}
+        sortDirection={sortDirection}
+        onSort={handleSort}
+        onEdit={setEditOrder}
+        onDuplicate={setDuplicateOrder}
+        isLoading={isLoading}
+        onCreateClick={() => setCreateOpen(true)}
+      />
 
       <BulkActionBar count={selected.size} onClear={() => setSelected(new Set())} />
       <CreateOrderModal open={createOpen} onOpenChange={setCreateOpen} />
