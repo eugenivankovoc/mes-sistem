@@ -85,6 +85,10 @@
     --status-rework-text: 0 67% 47%;
     --status-rework-dot: 4 82% 63%;
 
+    /* Row highlights */
+    --row-rework: 0 100% 97%;
+    --row-completed: 137 100% 97%;
+
     /* Table */
     --table-header-bg: 210 20% 98%;
     --table-header-text: 220 9% 46%;
