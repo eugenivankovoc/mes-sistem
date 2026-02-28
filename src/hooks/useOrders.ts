@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -15,7 +15,8 @@ export interface OrderRow {
   created_at: string;
   customer_id: string | null;
   customer_name: string | null;
-  parts_count: number;
+  parts_total: number;
+  parts_completed: number;
 }
 
 interface Filters {
@@ -31,15 +32,41 @@ interface SortConfig {
   direction: "asc" | "desc";
 }
 
+export type RowAnimation = "insert" | "update" | "delete";
+
 export function useOrders(filters: Filters, sort: SortConfig) {
   const queryClient = useQueryClient();
+  const [animatedRows, setAnimatedRows] = useState<Map<string, RowAnimation>>(new Map());
+  const animationTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const clearAnimation = useCallback((id: string) => {
+    setAnimatedRows((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const triggerAnimation = useCallback((id: string, type: RowAnimation) => {
+    // Clear existing timer for this row
+    const existing = animationTimers.current.get(id);
+    if (existing) clearTimeout(existing);
+
+    setAnimatedRows((prev) => new Map(prev).set(id, type));
+
+    const timer = setTimeout(() => {
+      clearAnimation(id);
+      animationTimers.current.delete(id);
+    }, type === "delete" ? 500 : 2000);
+    animationTimers.current.set(id, timer);
+  }, [clearAnimation]);
 
   const query = useQuery({
     queryKey: ["orders", filters, sort],
     queryFn: async (): Promise<OrderRow[]> => {
       let q = supabase
         .from("orders")
-        .select("id, order_number, status, priority, notes, due_date, created_at, customer_id, customers(name), parts(id)");
+        .select("id, order_number, status, priority, notes, due_date, created_at, customer_id, customers(name), articles(parts(id, status))");
 
       if (filters.search) {
         q = q.ilike("order_number", `%${filters.search}%`);
@@ -64,36 +91,51 @@ export function useOrders(filters: Filters, sort: SortConfig) {
       const { data, error } = await q;
       if (error) throw error;
 
-      return (data ?? []).map((row: any) => ({
-        id: row.id,
-        order_number: row.order_number,
-        status: row.status,
-        priority: row.priority,
-        notes: row.notes,
-        due_date: row.due_date,
-        created_at: row.created_at,
-        customer_id: row.customer_id,
-        customer_name: row.customers?.name ?? null,
-        parts_count: row.parts?.length ?? 0,
-      }));
+      return (data ?? []).map((row: any) => {
+        const allParts = (row.articles ?? []).flatMap((a: any) => a.parts ?? []);
+        return {
+          id: row.id,
+          order_number: row.order_number,
+          status: row.status,
+          priority: row.priority,
+          notes: row.notes,
+          due_date: row.due_date,
+          created_at: row.created_at,
+          customer_id: row.customer_id,
+          customer_name: row.customers?.name ?? null,
+          parts_total: allParts.length,
+          parts_completed: allParts.filter((p: any) => p.status === "completed").length,
+        };
+      });
     },
   });
 
-  // Realtime subscription
+  // Realtime subscription with animation triggers
   useEffect(() => {
     const channel = supabase
       .channel("orders-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (payload) => {
+        triggerAnimation(payload.new.id, "insert");
         queryClient.invalidateQueries({ queryKey: ["orders"] });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (payload) => {
+        triggerAnimation(payload.new.id, "update");
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "orders" }, (payload) => {
+        triggerAnimation(payload.old.id, "delete");
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+        }, 500);
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, triggerAnimation]);
 
-  return query;
+  return { ...query, animatedRows };
 }
 
 /** Fetch total order count (unfiltered) */
