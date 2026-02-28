@@ -41,6 +41,13 @@ export interface PartDetail {
   current_workstation_id: string | null;
 }
 
+export interface WorkstationProgress {
+  workstation_id: string;
+  workstation_name: string;
+  total: number;
+  completed: number;
+}
+
 export function useOrderDetail(id: string | undefined) {
   return useQuery({
     queryKey: ["order-detail", id],
@@ -110,6 +117,46 @@ export function useOrderDetail(id: string | undefined) {
   });
 }
 
+/** Compute per-workstation progress from order detail */
+export function useWorkstationProgress(order: OrderDetail | undefined) {
+  const allParts = order?.articles.flatMap((a) => a.parts) ?? [];
+  const workstationIds = [
+    ...new Set(allParts.map((p) => p.current_workstation_id).filter(Boolean)),
+  ] as string[];
+
+  return useQuery({
+    queryKey: ["workstation-progress", order?.id, workstationIds],
+    queryFn: async (): Promise<WorkstationProgress[]> => {
+      if (workstationIds.length === 0) return [];
+
+      const { data: workstations } = await supabase
+        .from("workstations")
+        .select("id, name")
+        .in("id", workstationIds)
+        .order("sort_order");
+
+      const nameMap = new Map(workstations?.map((w) => [w.id, w.name]) ?? []);
+
+      const progressMap = new Map<string, { total: number; completed: number }>();
+      for (const part of allParts) {
+        if (!part.current_workstation_id) continue;
+        const entry = progressMap.get(part.current_workstation_id) ?? { total: 0, completed: 0 };
+        entry.total++;
+        if (part.status === "completed") entry.completed++;
+        progressMap.set(part.current_workstation_id, entry);
+      }
+
+      return Array.from(progressMap.entries()).map(([wsId, counts]) => ({
+        workstation_id: wsId,
+        workstation_name: nameMap.get(wsId) ?? "Nepoznato",
+        total: counts.total,
+        completed: counts.completed,
+      }));
+    },
+    enabled: !!order && workstationIds.length > 0,
+  });
+}
+
 export function useOrderComments(orderId: string | undefined) {
   return useQuery({
     queryKey: ["order-comments", orderId],
@@ -122,7 +169,6 @@ export function useOrderComments(orderId: string | undefined) {
         .order("created_at", { ascending: true });
       if (error) throw error;
 
-      // Fetch user names for comments
       const userIds = [...new Set(data.map((c) => c.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
