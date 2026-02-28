@@ -4,11 +4,11 @@ import {
   Layers,
   PieChart,
   Settings,
-  LogOut,
   ChevronLeft,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
+import { LogoutButton } from "@/components/LogoutButton";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Factory } from "lucide-react";
 
-
 const menuItems = [
   { title: "Upravljanje nalozima", url: "/orders", icon: ClipboardList },
   { title: "Napredak naloga", url: "/progress", icon: BarChart2 },
@@ -36,15 +35,10 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const navigate = useNavigate();
-  const { role, signOut } = useAuth();
+  const { profile } = useAuth();
+  const role = profile?.role ?? null;
 
   const filteredItems = menuItems.filter((item) => !item.adminOnly || role === "administrator");
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/login");
-  };
 
   return (
       <Sidebar collapsible="icon" className="border-r-0">
@@ -94,14 +88,7 @@ export function AppSidebar() {
           <SidebarMenu>
             {/* Logout */}
             <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={handleSignOut}
-                tooltip="Odjava"
-                className="text-sidebar-foreground/70 hover:bg-destructive hover:text-destructive-foreground transition-colors duration-150"
-              >
-                <LogOut className="h-5 w-5 shrink-0" />
-                {!collapsed && <span className="text-sm">Odjava</span>}
-              </SidebarMenuButton>
+              <LogoutButton collapsed={collapsed} />
             </SidebarMenuItem>
 
             {/* Collapse toggle */}

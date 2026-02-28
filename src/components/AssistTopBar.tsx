@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { LogoutButton } from "@/components/LogoutButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export function AssistTopBar() {
   const { id } = useParams<{ id: string }>();
-  const { profile, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { profile } = useAuth();
   const [currentTime, setCurrentTime] = useState(() => formatTime());
 
   // Update clock every 60s
@@ -48,11 +47,6 @@ export function AssistTopBar() {
     },
   });
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/login");
-  };
-
   const operatorName = profile?.full_name || profile?.email || "Operater";
 
   return (
@@ -73,13 +67,7 @@ export function AssistTopBar() {
       <div className="flex items-center gap-4">
         <span className="text-sm text-foreground">{operatorName}</span>
         <span className="text-sm text-muted-foreground font-mono">{currentTime}</span>
-        <button
-          onClick={handleSignOut}
-          className="p-2 rounded-md text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors duration-150"
-          aria-label="Odjava"
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
+        <LogoutButton variant="icon" />
       </div>
     </header>
   );

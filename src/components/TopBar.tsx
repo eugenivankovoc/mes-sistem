@@ -13,7 +13,8 @@ const roleLabels: Record<string, string> = {
 
 export function TopBar() {
   const { title } = usePageTitle();
-  const { profile, role } = useAuth();
+  const { profile } = useAuth();
+  const role = profile?.role ?? null;
   const { data: unreadCount = 0 } = useUnreadNotifications();
   const { toggleSidebar, isMobile } = useSidebar();
 

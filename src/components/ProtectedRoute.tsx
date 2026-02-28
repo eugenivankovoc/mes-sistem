@@ -18,7 +18,8 @@ function getHomeRoute(role: AppRole | null, workstationId: string | null): strin
 }
 
 export function ProtectedRoute({ children, allowedRoles, requireOwnWorkstation }: ProtectedRouteProps) {
-  const { session, role, profile, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
+  const role = profile?.role ?? null;
   const params = useParams();
 
   if (loading) {
