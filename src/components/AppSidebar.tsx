@@ -22,12 +22,6 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Factory } from "lucide-react";
 
 const menuItems = [
@@ -54,7 +48,6 @@ export function AppSidebar() {
   };
 
   return (
-    <TooltipProvider delayDuration={0}>
       <Sidebar collapsible="icon" className="border-r-0">
         {/* Logo area – 64px height */}
         <div className="flex h-16 items-center gap-2 px-4 border-b border-sidebar-border">
@@ -130,6 +123,5 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-    </TooltipProvider>
   );
 }
