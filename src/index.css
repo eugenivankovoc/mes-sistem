@@ -40,16 +40,16 @@
 
     --radius: 0.375rem;
 
-    /* Sidebar */
-    --sidebar-background: 212 55% 16%;
+    /* Sidebar – navy #0F2744 = 211 65% 16%, navy-light #1A3A5C = 211 55% 23% */
+    --sidebar-background: 211 65% 16%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 214 69% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 212 45% 22%;
+    --sidebar-accent: 211 55% 23%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 212 40% 25%;
+    --sidebar-border: 211 55% 23%;
     --sidebar-ring: 214 69% 39%;
-    --sidebar-active: 212 38% 30%;
+    --sidebar-active: 211 55% 23%;
 
     /* Topbar */
     --topbar-background: 0 0% 100%;
