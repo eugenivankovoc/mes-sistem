@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Factory } from "lucide-react";
 
+
 const menuItems = [
   { title: "Upravljanje nalozima", url: "/orders", icon: ClipboardList, roles: ["administrator", "planner"] },
   { title: "Arhiva naloga", url: "/archive", icon: Archive, roles: ["administrator", "planner"] },
