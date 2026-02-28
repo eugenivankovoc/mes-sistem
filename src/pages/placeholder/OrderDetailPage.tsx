@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useSetPageTitle } from "@/hooks/useSetPageTitle";
-import { useOrderDetail, useOrderComments } from "@/hooks/useOrderDetail";
+import { useOrderDetail, useOrderComments, useWorkstationProgress } from "@/hooks/useOrderDetail";
 import { useIsTablet } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { OrderInfoCard } from "@/components/order-detail/OrderInfoCard";
+import { OrderActionButtons } from "@/components/order-detail/OrderActionButtons";
 import { OrderArticles } from "@/components/order-detail/OrderArticles";
 import { OrderCommentsPanel } from "@/components/order-detail/OrderCommentsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,8 +17,9 @@ export default function OrderDetailPage() {
   const navigate = useNavigate();
   const isTablet = useIsTablet();
   const { user } = useAuth();
-  const { data: order, isLoading, error } = useOrderDetail(id);
+  const { data: order, isLoading, error, refetch: refetchOrder } = useOrderDetail(id);
   const { data: comments = [], refetch: refetchComments } = useOrderComments(id);
+  const { data: workstationProgress = [] } = useWorkstationProgress(order);
 
   useSetPageTitle(order ? `Nalog: ${order.order_number}` : "Nalog");
 
@@ -36,7 +38,12 @@ export default function OrderDetailPage() {
     );
   }
 
-  const leftContent = <OrderInfoCard order={order} />;
+  const leftContent = (
+    <>
+      <OrderInfoCard order={order} workstationProgress={workstationProgress} />
+      <OrderActionButtons order={order} />
+    </>
+  );
   const centerContent = <OrderArticles articles={order.articles} />;
   const rightContent = (
     <OrderCommentsPanel
