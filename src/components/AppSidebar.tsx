@@ -1,6 +1,6 @@
 import {
   ClipboardList,
-  BarChart3,
+  BarChart2,
   Layers,
   PieChart,
   Settings,
@@ -25,11 +25,11 @@ import { Factory } from "lucide-react";
 
 
 const menuItems = [
-  { title: "Upravljanje nalozima", url: "/orders", icon: ClipboardList, roles: ["administrator", "planner"] },
-  { title: "Napredak naloga", url: "/progress", icon: BarChart3, roles: ["administrator", "planner"] },
-  { title: "Batch formacija", url: "/batches", icon: Layers, roles: ["administrator", "planner"] },
-  { title: "Izvještaji", url: "/reports", icon: PieChart, roles: ["administrator", "planner"] },
-  { title: "Admin postavke", url: "/admin", icon: Settings, roles: ["administrator"] },
+  { title: "Upravljanje nalozima", url: "/orders", icon: ClipboardList },
+  { title: "Napredak naloga", url: "/progress", icon: BarChart2 },
+  { title: "Batch formacija", url: "/batches", icon: Layers },
+  { title: "Izvještaji", url: "/reports", icon: PieChart },
+  { title: "Admin postavke", url: "/admin", icon: Settings, adminOnly: true },
 ];
 
 export function AppSidebar() {
@@ -39,7 +39,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { role, signOut } = useAuth();
 
-  const filteredItems = menuItems.filter((item) => role && item.roles.includes(role));
+  const filteredItems = menuItems.filter((item) => !item.adminOnly || role === "administrator");
 
   const handleSignOut = async () => {
     await signOut();
