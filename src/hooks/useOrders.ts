@@ -22,6 +22,8 @@ interface Filters {
   search: string;
   customerId: string | null;
   status: OrderStatus | null;
+  dateFrom: string | null;
+  dateTo: string | null;
 }
 
 interface SortConfig {
@@ -48,8 +50,13 @@ export function useOrders(filters: Filters, sort: SortConfig) {
       if (filters.status) {
         q = q.eq("status", filters.status);
       }
+      if (filters.dateFrom) {
+        q = q.gte("due_date", filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        q = q.lte("due_date", filters.dateTo);
+      }
 
-      const sortCol = sort.column === "customer_name" ? "customers(name)" : sort.column;
       q = q.order(sort.column === "customer_name" ? "created_at" : sort.column, {
         ascending: sort.direction === "asc",
       });
@@ -87,6 +94,20 @@ export function useOrders(filters: Filters, sort: SortConfig) {
   }, [queryClient]);
 
   return query;
+}
+
+/** Fetch total order count (unfiltered) */
+export function useOrdersCount() {
+  return useQuery({
+    queryKey: ["orders-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 }
 
 export function useCustomers() {
