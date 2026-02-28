@@ -1,21 +1,32 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Factory } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Factory, Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const { signIn } = useAuth();
   const navigate = useNavigate();
+
+  const validate = () => {
+    const errors: { email?: string; password?: string } = {};
+    if (!email.trim()) {
+      errors.email = "Email adresa je obavezna.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = "Unesite ispravnu email adresu.";
+    }
+    if (!password) {
+      errors.password = "Lozinka je obavezna.";
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const redirectAfterLogin = async (userId: string) => {
     const { data: roleData } = await supabase
@@ -41,14 +52,15 @@ export default function LoginPage() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    if (!validate()) return;
 
-    const { error } = await signIn(email, password);
-    if (error) {
-      setError("Pogrešan email ili lozinka.");
+    setLoading(true);
+    const { error: authError } = await signIn(email.trim(), password);
+    if (authError) {
+      setError("Pogrešan email ili lozinka. Pokušajte ponovo.");
       setLoading(false);
       return;
     }
@@ -58,139 +70,166 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-
-    if (signUpError) {
-      setError(signUpError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (data.user) {
-      // Auto-confirmed, so sign in and redirect
-      const { error: loginError } = await signIn(email, password);
-      if (loginError) {
-        setError("Registracija uspješna, ali prijava nije uspjela. Pokušajte se prijaviti.");
-        setIsRegister(false);
-        setLoading(false);
-        return;
-      }
-      await redirectAfterLogin(data.user.id);
-    }
-
-    setLoading(false);
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-14 w-14 rounded-xl bg-primary flex items-center justify-center mb-4">
-            <Factory className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">MES Sustav</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isRegister ? "Kreirajte novi račun" : "Prijavite se u sustav"}
-          </p>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: "#F9FAFB" }}>
+      <div
+        className="w-full"
+        style={{
+          maxWidth: 400,
+          backgroundColor: "#FFFFFF",
+          borderRadius: 12,
+          padding: 40,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+        }}
+      >
+        {/* Logo */}
+        <div className="flex justify-center">
+          <Factory className="shrink-0" style={{ width: 48, height: 48, color: "#1E5FA8" }} />
         </div>
 
-        {/* Tabs */}
-        <div className="flex mb-6 border-b border-border">
-          <button
-            type="button"
-            className={`flex-1 pb-2 text-sm font-medium transition-colors ${
-              !isRegister
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => { setIsRegister(false); setError(""); }}
-          >
-            Prijava
-          </button>
-          <button
-            type="button"
-            className={`flex-1 pb-2 text-sm font-medium transition-colors ${
-              isRegister
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => { setIsRegister(true); setError(""); }}
-          >
-            Registracija
-          </button>
-        </div>
+        {/* Title */}
+        <h1
+          className="text-center font-bold"
+          style={{ fontSize: 28, color: "#0F2744", marginTop: 12 }}
+        >
+          MES Sustav
+        </h1>
+        <p
+          className="text-center"
+          style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}
+        >
+          Prijavite se na vaš račun
+        </p>
 
-        <form onSubmit={isRegister ? handleRegister : handleLogin} className="space-y-4">
-          {isRegister && (
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Ime i prezime</Label>
-              <Input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Ivan Horvat"
-                required
-                autoComplete="name"
-              />
-            </div>
-          )}
+        {/* Divider */}
+        <hr style={{ margin: "24px 0", borderColor: "#E5E7EB" }} />
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
+        {/* Form */}
+        <form onSubmit={handleSubmit} noValidate>
+          {/* Email */}
+          <div className="mb-4">
+            <label
+              htmlFor="email"
+              className="block font-medium"
+              style={{ fontSize: 14, color: "#374151", marginBottom: 6 }}
+            >
+              Email adresa
+            </label>
+            <input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="vas@email.com"
-              required
               autoComplete="email"
+              placeholder="vas@email.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({ ...p, email: undefined })); }}
+              className="w-full border outline-none transition-colors"
+              style={{
+                height: 40,
+                borderRadius: 6,
+                padding: "0 12px",
+                fontSize: 14,
+                borderColor: fieldErrors.email ? "#C0392B" : "#D1D5DB",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#1E5FA8"; e.currentTarget.style.boxShadow = "0 0 0 2px rgba(30,95,168,0.15)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = fieldErrors.email ? "#C0392B" : "#D1D5DB"; e.currentTarget.style.boxShadow = "none"; }}
             />
+            {fieldErrors.email && (
+              <p style={{ fontSize: 12, color: "#C0392B", marginTop: 4 }}>{fieldErrors.email}</p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Lozinka</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              autoComplete={isRegister ? "new-password" : "current-password"}
-              minLength={isRegister ? 6 : undefined}
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading
-              ? (isRegister ? "Registracija..." : "Prijava...")
-              : (isRegister ? "Registriraj se" : "Prijava")}
-          </Button>
-
-          {!isRegister && (
-            <div className="text-center">
+          {/* Password */}
+          <div className="mb-1">
+            <label
+              htmlFor="password"
+              className="block font-medium"
+              style={{ fontSize: 14, color: "#374151", marginBottom: 6 }}
+            >
+              Lozinka
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({ ...p, password: undefined })); }}
+                className="w-full border outline-none transition-colors pr-10"
+                style={{
+                  height: 40,
+                  borderRadius: 6,
+                  padding: "0 40px 0 12px",
+                  fontSize: 14,
+                  borderColor: fieldErrors.password ? "#C0392B" : "#D1D5DB",
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#1E5FA8"; e.currentTarget.style.boxShadow = "0 0 0 2px rgba(30,95,168,0.15)"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = fieldErrors.password ? "#C0392B" : "#D1D5DB"; e.currentTarget.style.boxShadow = "none"; }}
+              />
               <button
                 type="button"
-                className="text-sm text-primary hover:underline"
-                onClick={() => {/* TODO: implement forgot password */}}
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-0 top-0 h-full flex items-center justify-center"
+                style={{ width: 40, color: "#9CA3AF" }}
+                tabIndex={-1}
               >
-                Zaboravili ste lozinku?
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
+            </div>
+            {fieldErrors.password && (
+              <p style={{ fontSize: 12, color: "#C0392B", marginTop: 4 }}>{fieldErrors.password}</p>
+            )}
+          </div>
+
+          {/* Forgot password */}
+          <div className="flex justify-end mb-6">
+            <button
+              type="button"
+              onClick={() => {/* TODO: forgot password flow */}}
+              style={{ fontSize: 13, color: "#1E5FA8" }}
+              className="hover:underline"
+            >
+              Zaboravili ste lozinku?
+            </button>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center font-medium text-white transition-colors"
+            style={{
+              height: 44,
+              borderRadius: 6,
+              fontSize: 15,
+              backgroundColor: loading ? "#4A8AD4" : "#1E5FA8",
+              cursor: loading ? "not-allowed" : "pointer",
+              marginTop: 0,
+            }}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Prijava u tijeku...
+              </>
+            ) : (
+              "Prijava"
+            )}
+          </button>
+
+          {/* Error box */}
+          {error && (
+            <div
+              style={{
+                marginTop: 16,
+                backgroundColor: "#FFEBEE",
+                borderRadius: 6,
+                padding: "10px 12px",
+                fontSize: 13,
+                color: "#C62828",
+              }}
+            >
+              {error}
             </div>
           )}
         </form>
