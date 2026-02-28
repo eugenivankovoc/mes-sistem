@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useSetPageTitle } from "@/hooks/useSetPageTitle";
 import { Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { BulkActionBar } from "@/components/orders/BulkActionBar";
@@ -25,6 +26,8 @@ const defaultColumns: ColumnConfig[] = [
   { key: "parts_count", label: "Dijelovi", visible: true },
 ];
 
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
 export default function OrdersPage() {
   useSetPageTitle("Upravljanje nalozima");
   const [search, setSearch] = useState("");
@@ -39,8 +42,10 @@ export default function OrdersPage() {
   const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
   const [duplicateOrder, setDuplicateOrder] = useState<OrderRow | null>(null);
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
-  const { data: orders = [], isLoading, animatedRows } = useOrders(
+  const { data: allOrders = [], isLoading, animatedRows } = useOrders(
     {
       search,
       customerId,
@@ -53,9 +58,30 @@ export default function OrdersPage() {
   const { data: customers = [] } = useCustomers();
   const { data: totalCount = 0 } = useOrdersCount();
 
+  const hasActiveFilters = !!(search || customerId || status || dateFrom || dateTo);
+
+  // Pagination
+  const totalFiltered = allOrders.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIdx = (safePage - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, totalFiltered);
+  const paginatedOrders = useMemo(
+    () => allOrders.slice(startIdx, endIdx),
+    [allOrders, startIdx, endIdx]
+  );
+
+  // Reset page when filters change
+  const handleSearchChange = useCallback((v: string) => { setSearch(v); setPage(1); }, []);
+  const handleCustomerChange = useCallback((v: string | null) => { setCustomerId(v); setPage(1); }, []);
+  const handleStatusChange = useCallback((v: OrderStatus | null) => { setStatus(v); setPage(1); }, []);
+  const handleDateFromChange = useCallback((v: Date | undefined) => { setDateFrom(v); setPage(1); }, []);
+  const handleDateToChange = useCallback((v: Date | undefined) => { setDateTo(v); setPage(1); }, []);
+
   const handleSort = useCallback((col: string) => {
     setSortDirection((d) => (sortColumn === col ? (d === "asc" ? "desc" : "asc") : "asc"));
     setSortColumn(col);
+    setPage(1);
   }, [sortColumn]);
 
   const handleSelect = useCallback((id: string, checked: boolean) => {
@@ -67,14 +93,34 @@ export default function OrdersPage() {
   }, []);
 
   const handleSelectAll = useCallback((checked: boolean) => {
-    setSelected(checked ? new Set(orders.map((o) => o.id)) : new Set());
-  }, [orders]);
+    setSelected(checked ? new Set(paginatedOrders.map((o) => o.id)) : new Set());
+  }, [paginatedOrders]);
 
   const handleColumnVisibility = useCallback((key: string, visible: boolean) => {
     setColumns((prev) => prev.map((c) => c.key === key ? { ...c, visible } : c));
   }, []);
 
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setCustomerId(null);
+    setStatus(null);
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setPage(1);
+  }, []);
+
   const visibleColumns = columns.filter((c) => c.visible);
+
+  // Page numbers to show
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, safePage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  }, [safePage, totalPages]);
 
   return (
     <div className="space-y-4">
@@ -89,22 +135,22 @@ export default function OrdersPage() {
 
       <OrderFilters
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         customerId={customerId}
-        onCustomerChange={setCustomerId}
+        onCustomerChange={handleCustomerChange}
         status={status}
-        onStatusChange={setStatus}
+        onStatusChange={handleStatusChange}
         dateFrom={dateFrom}
         dateTo={dateTo}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
+        onDateFromChange={handleDateFromChange}
+        onDateToChange={handleDateToChange}
         customers={customers}
-        filteredCount={orders.length}
+        filteredCount={totalFiltered}
         totalCount={totalCount}
       />
 
       <OrdersTable
-        orders={orders}
+        orders={paginatedOrders}
         selected={selected}
         onSelect={handleSelect}
         onSelectAll={handleSelectAll}
@@ -115,14 +161,64 @@ export default function OrdersPage() {
         onDuplicate={setDuplicateOrder}
         isLoading={isLoading}
         onCreateClick={() => setCreateOpen(true)}
+        onClearFilters={clearFilters}
+        hasActiveFilters={hasActiveFilters}
         visibleColumns={visibleColumns}
         animatedRows={animatedRows}
       />
 
+      {/* Pagination bar */}
+      {!isLoading && totalFiltered > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
+          <span className="text-sm text-muted-foreground">
+            Prikazano {startIdx + 1}–{endIdx} od {totalFiltered} naloga
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              ←
+            </Button>
+            {pageNumbers.map((n) => (
+              <Button
+                key={n}
+                variant={n === safePage ? "default" : "outline"}
+                size="sm"
+                className="min-w-[36px]"
+                onClick={() => setPage(n)}
+              >
+                {n}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              →
+            </Button>
+            <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+              <SelectTrigger className="w-[80px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={String(s)}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
       <BulkActionBar
         count={selected.size}
         onClear={() => setSelected(new Set())}
-        selectedOrders={orders.filter((o) => selected.has(o.id))}
+        selectedOrders={allOrders.filter((o) => selected.has(o.id))}
       />
       <CreateOrderModal open={createOpen} onOpenChange={setCreateOpen} />
       <EditOrderModal order={editOrder} open={!!editOrder} onOpenChange={(o) => !o && setEditOrder(null)} />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ interface Props {
 
 export function DuplicateOrderDialog({ order, open, onOpenChange }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [duplicating, setDuplicating] = useState(false);
@@ -81,10 +83,11 @@ export function DuplicateOrderDialog({ order, open, onOpenChange }: Props) {
       }
     }
 
-    toast({ title: "Nalog kopiran" });
+    toast({ title: "Nalog kopiran uspješno" });
     queryClient.invalidateQueries({ queryKey: ["orders"] });
     onOpenChange(false);
     setDuplicating(false);
+    navigate(`/orders/${newOrder.id}`);
   };
 
   return (
@@ -93,7 +96,7 @@ export function DuplicateOrderDialog({ order, open, onOpenChange }: Props) {
         <AlertDialogHeader>
           <AlertDialogTitle>Kopirati nalog {order?.order_number}?</AlertDialogTitle>
           <AlertDialogDescription>
-            Kreirati će se novi nalog s istim podacima, artiklima i dijelovima. Status novog naloga bit će "New".
+            Nova kopija bit će kreirana sa svim artiklima i dijelovima.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
