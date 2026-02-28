@@ -13,7 +13,7 @@ import { EditOrderModal } from "@/components/orders/EditOrderModal";
 import { DuplicateOrderDialog } from "@/components/orders/DuplicateOrderDialog";
 import { ColumnVisibilitySettings, type ColumnConfig } from "@/components/orders/ColumnVisibilitySettings";
 import { useOrders, useCustomers, useOrdersCount } from "@/hooks/useOrders";
-import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { OrderRow } from "@/hooks/useOrders";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -31,8 +31,6 @@ const defaultColumns: ColumnConfig[] = [
 export default function OrdersPage() {
   useSetPageTitle("Upravljanje nalozima");
   const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
-  const useCardView = isMobile || isTablet;
   const [search, setSearch] = useState("");
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [status, setStatus] = useState<OrderStatus | null>(null);
@@ -91,7 +89,7 @@ export default function OrdersPage() {
           <span className="hidden sm:inline">Novi nalog</span>
           <span className="sm:hidden">Novi</span>
         </Button>
-        {!useCardView && (
+        {!isMobile && (
           <ColumnVisibilitySettings columns={columns} onChange={handleColumnVisibility} />
         )}
       </div>
@@ -112,8 +110,8 @@ export default function OrdersPage() {
         totalCount={totalCount}
       />
 
-      {/* Compact: card list | Desktop: table */}
-      {useCardView ? (
+      {/* Mobile: card list | Desktop/Tablet: table */}
+      {isMobile ? (
         <div className="space-y-3">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
