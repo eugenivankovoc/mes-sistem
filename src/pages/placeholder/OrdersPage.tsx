@@ -54,9 +54,9 @@ export default function OrdersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Order Management</h1>
+        <h1 className="text-2xl font-bold text-foreground">Upravljanje nalozima</h1>
         <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> New Order
+          <Plus className="h-4 w-4 mr-1" /> Novi nalog
         </Button>
       </div>
 
