@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { format, isPast, isToday, parseISO } from "date-fns";
-import { ArrowUpDown, Pencil, Copy, ArrowRight, ClipboardList, AlertTriangle } from "lucide-react";
+import { ArrowUpDown, Pencil, Copy, ArrowRight, ClipboardList, AlertTriangle, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -28,6 +28,8 @@ interface Props {
   onDuplicate: (order: OrderRow) => void;
   isLoading?: boolean;
   onCreateClick?: () => void;
+  onClearFilters?: () => void;
+  hasActiveFilters?: boolean;
   visibleColumns: ColumnDef[];
   animatedRows: Map<string, RowAnimation>;
 }
@@ -52,7 +54,8 @@ function getAnimationClass(type: RowAnimation | undefined) {
 export function OrdersTable({
   orders, selected, onSelect, onSelectAll,
   sortColumn, sortDirection, onSort, onEdit, onDuplicate,
-  isLoading, onCreateClick, visibleColumns, animatedRows,
+  isLoading, onCreateClick, onClearFilters, hasActiveFilters,
+  visibleColumns, animatedRows,
 }: Props) {
   const navigate = useNavigate();
   const allSelected = orders.length > 0 && selected.size === orders.length;
@@ -98,15 +101,28 @@ export function OrdersTable({
           <TableRow>
             <TableCell colSpan={colSpan}>
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <ClipboardList className="h-10 w-10 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">Nema naloga</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Nema naloga koji odgovaraju vašim filterima.
-                </p>
-                {onCreateClick && (
-                  <Button onClick={onCreateClick}>Kreirajte prvi nalog</Button>
+                {hasActiveFilters ? (
+                  <>
+                    <div className="rounded-full bg-muted p-4 mb-4">
+                      <Search className="h-10 w-10 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Nema rezultata za odabrane filtere</h3>
+                    {onClearFilters && (
+                      <Button variant="secondary" onClick={onClearFilters} className="mt-4">
+                        Poništi filtere
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-full bg-muted p-4 mb-4">
+                      <ClipboardList className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Nema naloga</h3>
+                    {onCreateClick && (
+                      <Button onClick={onCreateClick} className="mt-4">Kreirajte prvi nalog</Button>
+                    )}
+                  </>
                 )}
               </div>
             </TableCell>

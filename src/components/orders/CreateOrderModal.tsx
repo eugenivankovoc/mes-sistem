@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { format, startOfDay, isBefore } from "date-fns";
 import { CalendarIcon, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ interface Props {
 
 export function CreateOrderModal({ open, onOpenChange }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: customers = [] } = useCustomers();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -140,7 +142,7 @@ export function CreateOrderModal({ open, onOpenChange }: Props) {
     if (!validate()) return;
     setSaving(true);
 
-    const { error } = await supabase.from("orders").insert({
+    const { data: newOrder, error } = await supabase.from("orders").insert({
       order_number: orderNumber || orderName.trim(),
       customer_id: customerId,
       created_at: orderDate.toISOString(),
@@ -148,16 +150,17 @@ export function CreateOrderModal({ open, onOpenChange }: Props) {
       priority: isUrgent ? 1 : 0,
       notes: notes.trim() || null,
       created_by: user?.id ?? null,
-    });
+    }).select("id").single();
 
-    if (error) {
-      toast({ title: "Greška pri kreiranju", description: error.message, variant: "destructive" });
+    if (error || !newOrder) {
+      toast({ title: "Greška pri kreiranju", description: error?.message, variant: "destructive" });
     } else {
-      toast({ title: "Nalog kreiran", description: `Nalog ${orderNumber} uspješno kreiran.` });
+      toast({ title: `Nalog ${orderNumber} uspješno kreiran` });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["orders-count"] });
       resetForm();
       onOpenChange(false);
+      navigate(`/orders/${newOrder.id}`);
     }
     setSaving(false);
   };

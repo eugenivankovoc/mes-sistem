@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, parseISO } from "date-fns";
+import { OrderStatusBadge } from "./OrderStatusBadge";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,7 +81,7 @@ export function EditOrderModal({ order, open, onOpenChange }: Props) {
     if (error) {
       toast({ title: "Greška pri ažuriranju", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Nalog ažuriran" });
+      toast({ title: "Nalog uspješno ažuriran" });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       onOpenChange(false);
     }
@@ -96,12 +97,32 @@ export function EditOrderModal({ order, open, onOpenChange }: Props) {
 
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="editOrderName">Order name *</Label>
+            <Label htmlFor="editOrderName">Naziv naloga *</Label>
             <Input
               id="editOrderName"
               value={orderName}
               onChange={(e) => setOrderName(e.target.value)}
             />
+          </div>
+
+          {/* Order number - editable */}
+          <div className="space-y-2">
+            <Label>Broj naloga</Label>
+            <Input
+              value={order?.order_number ?? ""}
+              readOnly
+              disabled
+              className="bg-muted"
+            />
+          </div>
+
+          {/* Status - shown but disabled */}
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted">
+              {order && <OrderStatusBadge status={order.status} />}
+            </div>
+            <span className="text-xs text-muted-foreground">Status se mijenja putem akcija</span>
           </div>
 
           <div className="space-y-2">
