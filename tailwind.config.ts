@@ -126,6 +126,14 @@ export default {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "row-confirm": {
+          "0%": { backgroundColor: "#D1FAE5" },
+          "100%": { backgroundColor: "transparent" },
+        },
+        "slide-out-up": {
+          "0%": { opacity: "1", transform: "translateY(0)", maxHeight: "100px" },
+          "100%": { opacity: "0", transform: "translateY(-20px)", maxHeight: "0px" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -134,6 +142,8 @@ export default {
         "row-update": "row-update 2s ease-out",
         "row-delete": "row-delete 0.5s ease-out forwards",
         "slide-in": "slide-in 0.3s ease-out",
+        "row-confirm": "row-confirm 0.5s ease-out",
+        "slide-out-up": "slide-out-up 0.3s ease-out forwards",
       },
     },
   },
