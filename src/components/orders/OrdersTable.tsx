@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { format, isPast, parseISO } from "date-fns";
-import { ArrowUpDown, Pencil, Copy, ArrowRight } from "lucide-react";
+import { ArrowUpDown, Pencil, Copy, ArrowRight, ClipboardList } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,8 +8,12 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderStatusBadge } from "./OrderStatusBadge";
-import { ClipboardList } from "lucide-react";
 import type { OrderRow } from "@/hooks/useOrders";
+
+interface ColumnDef {
+  key: string;
+  label: string;
+}
 
 interface Props {
   orders: OrderRow[];
@@ -23,30 +27,41 @@ interface Props {
   onDuplicate: (order: OrderRow) => void;
   isLoading?: boolean;
   onCreateClick?: () => void;
+  visibleColumns: ColumnDef[];
 }
-
-const columns = [
-  { key: "order_number", label: "Naziv naloga" },
-  { key: "customer_name", label: "Kupac" },
-  { key: "status", label: "Status" },
-  { key: "created_at", label: "Datum naloga" },
-  { key: "due_date", label: "Datum isporuke" },
-  { key: "parts_count", label: "Dijelovi" },
-];
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
   return format(parseISO(d), "dd.MM.yyyy");
 }
 
+function renderCell(order: OrderRow, key: string, isOverdue: boolean) {
+  switch (key) {
+    case "order_number":
+      return null; // handled inline with link
+    case "customer_name":
+      return order.customer_name ?? "—";
+    case "status":
+      return <OrderStatusBadge status={order.status} />;
+    case "created_at":
+      return fmtDate(order.created_at);
+    case "due_date":
+      return <span className={isOverdue ? "text-destructive font-medium" : ""}>{fmtDate(order.due_date)}</span>;
+    case "parts_count":
+      return order.parts_count;
+    default:
+      return null;
+  }
+}
+
 export function OrdersTable({
   orders, selected, onSelect, onSelectAll,
   sortColumn, sortDirection, onSort, onEdit, onDuplicate,
-  isLoading, onCreateClick,
+  isLoading, onCreateClick, visibleColumns,
 }: Props) {
   const navigate = useNavigate();
   const allSelected = orders.length > 0 && selected.size === orders.length;
-  const colSpan = columns.length + 2; // checkbox + columns + actions
+  const colSpan = visibleColumns.length + 2; // checkbox + columns + actions
 
   return (
     <Table>
@@ -58,7 +73,7 @@ export function OrdersTable({
               onCheckedChange={(v) => onSelectAll(!!v)}
             />
           </TableHead>
-          {columns.map((col) => (
+          {visibleColumns.map((col) => (
             <TableHead key={col.key}>
               <button
                 className="inline-flex items-center gap-1 text-table-header-text hover:text-foreground"
@@ -114,21 +129,20 @@ export function OrdersTable({
                     onCheckedChange={(v) => onSelect(order.id, !!v)}
                   />
                 </TableCell>
-                <TableCell>
-                  <button
-                    className="font-semibold text-primary hover:underline"
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                  >
-                    {order.order_number}
-                  </button>
-                </TableCell>
-                <TableCell>{order.customer_name ?? "—"}</TableCell>
-                <TableCell><OrderStatusBadge status={order.status} /></TableCell>
-                <TableCell>{fmtDate(order.created_at)}</TableCell>
-                <TableCell className={isOverdue ? "text-destructive font-medium" : ""}>
-                  {fmtDate(order.due_date)}
-                </TableCell>
-                <TableCell>{order.parts_count}</TableCell>
+                {visibleColumns.map((col) => (
+                  <TableCell key={col.key}>
+                    {col.key === "order_number" ? (
+                      <button
+                        className="font-semibold text-primary hover:underline"
+                        onClick={() => navigate(`/orders/${order.id}`)}
+                      >
+                        {order.order_number}
+                      </button>
+                    ) : (
+                      renderCell(order, col.key, !!isOverdue)
+                    )}
+                  </TableCell>
+                ))}
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" title="Uredi" onClick={() => onEdit(order)}>
