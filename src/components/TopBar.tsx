@@ -17,16 +17,18 @@ export function TopBar() {
   const { data: unreadCount = 0 } = useUnreadNotifications();
   const { toggleSidebar, isMobile } = useSidebar();
 
-  const initials = profile?.full_name
-    ? profile.full_name
+  const fullName = profile?.full_name?.trim() ?? "";
+  const displayName = fullName || profile?.email || "";
+
+  const initials = fullName
+    ? fullName
         .split(" ")
+        .filter(Boolean)
         .map((n) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : profile?.email?.slice(0, 2).toUpperCase() ?? "?";
-
-  const displayName = profile?.full_name || profile?.email || "Korisnik";
+    : (profile?.email?.slice(0, 2).toUpperCase() || "NA");
 
   return (
     <header className="h-16 flex items-center justify-between border-b border-topbar-border bg-topbar px-4 shrink-0">
