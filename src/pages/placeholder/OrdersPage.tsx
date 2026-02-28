@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useSetPageTitle } from "@/hooks/useSetPageTitle";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderFilters } from "@/components/orders/OrderFilters";
@@ -16,6 +17,7 @@ import type { Database } from "@/integrations/supabase/types";
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
 export default function OrdersPage() {
+  useSetPageTitle("Upravljanje nalozima");
   const [search, setSearch] = useState("");
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [status, setStatus] = useState<OrderStatus | null>(null);

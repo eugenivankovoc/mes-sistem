@@ -1,5 +1,8 @@
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 
 const roleLabels: Record<string, string> = {
@@ -8,12 +11,11 @@ const roleLabels: Record<string, string> = {
   operator: "Operater",
 };
 
-interface TopBarProps {
-  title: string;
-}
-
-export function TopBar({ title }: TopBarProps) {
+export function TopBar() {
+  const { title } = usePageTitle();
   const { profile, role } = useAuth();
+  const { data: unreadCount = 0 } = useUnreadNotifications();
+  const { toggleSidebar, isMobile } = useSidebar();
 
   const initials = profile?.full_name
     ? profile.full_name
@@ -29,14 +31,28 @@ export function TopBar({ title }: TopBarProps) {
   return (
     <header className="h-16 flex items-center justify-between border-b border-topbar-border bg-topbar px-4 shrink-0">
       <div className="flex items-center gap-3">
+        {/* Mobile hamburger */}
+        {isMobile && (
+          <button
+            onClick={toggleSidebar}
+            className="p-2 rounded-md hover:bg-muted transition-colors duration-150 md:hidden"
+            aria-label="Otvori izbornik"
+          >
+            <Menu className="h-5 w-5 text-muted-foreground" />
+          </button>
+        )}
         <h1 className="text-xl font-bold text-topbar-foreground">{title}</h1>
       </div>
+
       <div className="flex items-center gap-4">
-        {/* Bell with badge */}
+        {/* Bell with unread badge */}
         <button className="relative p-2 rounded-md hover:bg-muted transition-colors duration-150">
           <Bell className="h-[22px] w-[22px] text-muted-foreground" />
-          {/* Unread badge – hidden when 0 */}
-          {/* <span className="absolute top-1 right-1 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">3</span> */}
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </button>
 
         {/* Vertical divider */}
