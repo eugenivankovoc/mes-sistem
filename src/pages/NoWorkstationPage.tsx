@@ -1,7 +1,6 @@
-import { Factory, LogOut } from "lucide-react";
+import { AlertTriangle, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 
 export default function NoWorkstationPage() {
   const { signOut } = useAuth();
@@ -13,21 +12,42 @@ export default function NoWorkstationPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="text-center max-w-md">
-        <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center mx-auto mb-6">
-          <Factory className="h-8 w-8 text-muted-foreground" />
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: "#F9FAFB" }}>
+      <div
+        className="w-full text-center"
+        style={{
+          maxWidth: 420,
+          backgroundColor: "#FFFFFF",
+          borderRadius: 12,
+          padding: 40,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+        }}
+      >
+        <div className="flex justify-center mb-5">
+          <AlertTriangle style={{ width: 64, height: 64, color: "#E67E22" }} />
         </div>
-        <h1 className="text-xl font-bold text-foreground mb-2">
-          Radna stanica nije dodijeljena
-        </h1>
-        <p className="text-muted-foreground mb-6">
-          Nije vam dodijeljena radna stanica. Kontaktirajte administratora.
+        <h2 className="font-bold" style={{ fontSize: 22, color: "#0F2744", marginBottom: 8 }}>
+          Nije vam dodijeljena radna stanica
+        </h2>
+        <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 28 }}>
+          Kontaktirajte administratora sustava za dodjelu radne stanice.
         </p>
-        <Button variant="outline" onClick={handleSignOut}>
-          <LogOut className="h-4 w-4 mr-2" />
+        <button
+          onClick={handleSignOut}
+          className="inline-flex items-center justify-center gap-2 font-medium border transition-colors hover:bg-gray-50"
+          style={{
+            height: 40,
+            borderRadius: 6,
+            padding: "0 20px",
+            fontSize: 14,
+            color: "#374151",
+            borderColor: "#D1D5DB",
+            backgroundColor: "#FFFFFF",
+          }}
+        >
+          <LogOut className="h-4 w-4" />
           Odjava
-        </Button>
+        </button>
       </div>
     </div>
   );

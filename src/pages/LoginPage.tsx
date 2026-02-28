@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Factory, Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -183,14 +183,13 @@ export default function LoginPage() {
 
           {/* Forgot password */}
           <div className="flex justify-end mb-6">
-            <button
-              type="button"
-              onClick={() => {/* TODO: forgot password flow */}}
+            <Link
+              to="/forgot-password"
               style={{ fontSize: 13, color: "#1E5FA8" }}
               className="hover:underline"
             >
               Zaboravili ste lozinku?
-            </button>
+            </Link>
           </div>
 
           {/* Submit */}

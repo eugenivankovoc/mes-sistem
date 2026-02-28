@@ -11,6 +11,8 @@ import { ManagerLayout } from "@/layouts/ManagerLayout";
 import { AssistLayout } from "@/layouts/AssistLayout";
 
 import LoginPage from "@/pages/LoginPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NoWorkstationPage from "@/pages/NoWorkstationPage";
 import NotFound from "@/pages/NotFound";
 
@@ -36,6 +38,8 @@ const App = () => (
             <Routes>
               {/* Public routes – no layout */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/" element={<Navigate to="/login" replace />} />
 
               {/* No-workstation error page – auth required, no layout */}
