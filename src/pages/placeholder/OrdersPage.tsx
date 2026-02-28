@@ -78,11 +78,13 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Upravljanje nalozima</h1>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Novi nalog
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Upravljanje nalozima</h1>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button onClick={() => setCreateOpen(true)} className="min-h-[48px] md:min-h-0">
+            <Plus className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Novi nalog</span>
+            <span className="sm:hidden">Novi</span>
           </Button>
           <ColumnVisibilitySettings columns={columns} onChange={handleColumnVisibility} />
         </div>

@@ -72,21 +72,21 @@ export function OrderFilters({
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="rounded-lg border border-border bg-card p-3 sm:p-4 space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-center gap-3">
         {/* Search */}
-        <div className="relative w-[260px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[260px] lg:w-[260px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Pretraži naziv naloga..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            className="pl-9 pr-8"
+            className="pl-9 pr-8 min-h-[48px] sm:min-h-0"
           />
           {localSearch && (
             <button
               onClick={() => { setLocalSearch(""); onSearchChange(""); }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[48px] min-w-[48px] flex items-center justify-center sm:min-h-0 sm:min-w-0"
             >
               <X className="h-4 w-4" />
             </button>
@@ -98,7 +98,7 @@ export function OrderFilters({
           value={customerId ?? "all"}
           onValueChange={(v) => onCustomerChange(v === "all" ? null : v)}
         >
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px] min-h-[48px] sm:min-h-0">
             <SelectValue placeholder="Svi kupci" />
           </SelectTrigger>
           <SelectContent>
@@ -114,7 +114,7 @@ export function OrderFilters({
           value={status ?? "all"}
           onValueChange={(v) => onStatusChange(v === "all" ? null : (v as OrderStatus))}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px] min-h-[48px] sm:min-h-0">
             <SelectValue placeholder="Svi statusi" />
           </SelectTrigger>
           <SelectContent>
@@ -130,7 +130,7 @@ export function OrderFilters({
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={cn("w-[140px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}
+              className={cn("w-full sm:w-[140px] justify-start text-left font-normal min-h-[48px] sm:min-h-0", !dateFrom && "text-muted-foreground")}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateFrom ? format(dateFrom, "dd.MM.yyyy") : "Od"}
@@ -152,7 +152,7 @@ export function OrderFilters({
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={cn("w-[140px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}
+              className={cn("w-full sm:w-[140px] justify-start text-left font-normal min-h-[48px] sm:min-h-0", !dateTo && "text-muted-foreground")}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateTo ? format(dateTo, "dd.MM.yyyy") : "Do"}
@@ -170,7 +170,7 @@ export function OrderFilters({
         </Popover>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearAll} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={clearAll} className="text-muted-foreground min-h-[48px] sm:min-h-0 w-full sm:w-auto">
             <X className="h-4 w-4 mr-1" /> Poništi filtere
           </Button>
         )}

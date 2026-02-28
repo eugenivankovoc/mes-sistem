@@ -59,7 +59,8 @@ export function OrdersTable({
   const colSpan = visibleColumns.length + 2;
 
   return (
-    <Table>
+    <div className="overflow-x-auto -mx-3 sm:mx-0 rounded-lg border border-border">
+    <Table className="min-w-[700px]">
       <TableHeader>
         <TableRow className="bg-table-header-bg hover:bg-table-header-bg">
           <TableHead className="w-12">
@@ -229,15 +230,15 @@ export function OrdersTable({
 
                 {/* Actions – visible on hover */}
                 <TableCell className="text-right w-[120px]">
-                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Uredi" onClick={() => onEdit(order)}>
+                  <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" title="Uredi" onClick={() => onEdit(order)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Kopiraj" onClick={() => onDuplicate(order)}>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" title="Kopiraj" onClick={() => onDuplicate(order)}>
                       <Copy className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant="ghost" size="icon" className="h-8 w-8" title="Pregledaj"
+                      variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" title="Pregledaj"
                       onClick={() => navigate(`/orders/${order.id}`)}
                     >
                       <ArrowRight className="h-4 w-4" />
@@ -250,5 +251,6 @@ export function OrdersTable({
         )}
       </TableBody>
     </Table>
+    </div>
   );
 }
