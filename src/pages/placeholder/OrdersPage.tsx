@@ -40,7 +40,7 @@ export default function OrdersPage() {
   const [duplicateOrder, setDuplicateOrder] = useState<OrderRow | null>(null);
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
 
-  const { data: orders = [], isLoading } = useOrders(
+  const { data: orders = [], isLoading, animatedRows } = useOrders(
     {
       search,
       customerId,
@@ -117,6 +117,7 @@ export default function OrdersPage() {
         isLoading={isLoading}
         onCreateClick={() => setCreateOpen(true)}
         visibleColumns={visibleColumns}
+        animatedRows={animatedRows}
       />
 
       <BulkActionBar count={selected.size} onClear={() => setSelected(new Set())} />
