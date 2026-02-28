@@ -2,9 +2,8 @@ import {
   ClipboardList,
   Archive,
   BarChart3,
-  Factory,
   Layers,
-  FileBarChart,
+  PieChart,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -22,14 +21,20 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Factory } from "lucide-react";
 
 const menuItems = [
   { title: "Upravljanje nalozima", url: "/orders", icon: ClipboardList, roles: ["administrator", "planner"] },
   { title: "Arhiva naloga", url: "/archive", icon: Archive, roles: ["administrator", "planner"] },
   { title: "Napredak naloga", url: "/progress", icon: BarChart3, roles: ["administrator", "planner"] },
-  { title: "Radne stanice", url: "/workstations", icon: Factory, roles: ["administrator"] },
-  { title: "Serije", url: "/batches", icon: Layers, roles: ["administrator", "planner"] },
-  { title: "Izvještaji", url: "/reports", icon: FileBarChart, roles: ["administrator", "planner"] },
+  { title: "Batch formacija", url: "/batches", icon: Layers, roles: ["administrator", "planner"] },
+  { title: "Izvještaji", url: "/reports", icon: PieChart, roles: ["administrator", "planner"] },
   { title: "Admin postavke", url: "/admin", icon: Settings, roles: ["administrator"] },
 ];
 
@@ -48,24 +53,24 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
-      <div className="flex h-16 items-center gap-2 px-4 border-b border-sidebar-border">
-        <Factory className="h-6 w-6 text-sidebar-primary shrink-0" />
-        {!collapsed && (
-          <span className="text-lg font-bold text-sidebar-foreground tracking-tight">
-            MES Sustav
-          </span>
-        )}
-      </div>
+    <TooltipProvider delayDuration={0}>
+      <Sidebar collapsible="icon" className="border-r-0">
+        <div className="flex h-16 items-center gap-2 px-4 border-b border-sidebar-border">
+          <Factory className="h-6 w-6 text-sidebar-primary shrink-0" />
+          {!collapsed && (
+            <span className="text-lg font-bold text-sidebar-foreground tracking-tight">
+              MES Sustav
+            </span>
+          )}
+        </div>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {filteredItems.map((item) => {
-                const isActive = location.pathname.startsWith(item.url);
-                return (
-                  <SidebarMenuItem key={item.title}>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredItems.map((item) => {
+                  const isActive = location.pathname.startsWith(item.url);
+                  const menuButton = (
                     <SidebarMenuButton
                       asChild
                       className={
@@ -79,27 +84,54 @@ export function AppSidebar() {
                         {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+                  );
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={handleSignOut}
-              className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <LogOut className="h-5 w-5 shrink-0" />
-              {!collapsed && <span className="text-sm">Odjava</span>}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      {collapsed ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>{menuButton}</TooltipTrigger>
+                          <TooltipContent side="right">{item.title}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        menuButton
+                      )}
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="border-t border-sidebar-border">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              {collapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      onClick={handleSignOut}
+                      className="text-sidebar-foreground/70 hover:bg-destructive hover:text-destructive-foreground transition-colors duration-150"
+                    >
+                      <LogOut className="h-5 w-5 shrink-0" />
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Odjava</TooltipContent>
+                </Tooltip>
+              ) : (
+                <SidebarMenuButton
+                  onClick={handleSignOut}
+                  className="text-sidebar-foreground/70 hover:bg-destructive hover:text-destructive-foreground transition-colors duration-150"
+                >
+                  <LogOut className="h-5 w-5 shrink-0" />
+                  <span className="text-sm">Odjava</span>
+                </SidebarMenuButton>
+              )}
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+    </TooltipProvider>
   );
 }

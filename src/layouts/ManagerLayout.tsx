@@ -8,7 +8,7 @@ const pageTitles: Record<string, string> = {
   "/archive": "Arhiva naloga",
   "/progress": "Napredak naloga",
   "/workstations": "Radne stanice",
-  "/batches": "Serije",
+  "/batches": "Batch formacija",
   "/reports": "Izvještaji",
   "/admin": "Admin postavke",
 };
