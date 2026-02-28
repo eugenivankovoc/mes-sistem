@@ -15,9 +15,9 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const config = statusConfig[status];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-${config.key}-bg text-status-${config.key}-text`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-xs font-medium bg-status-${config.key}-bg text-status-${config.key}-text`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full bg-status-${config.key}-dot`} />
+      <span className={`h-[7px] w-[7px] rounded-full bg-status-${config.key}-dot`} />
       {config.label}
     </span>
   );

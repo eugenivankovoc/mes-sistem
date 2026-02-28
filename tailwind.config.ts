@@ -93,6 +93,7 @@ export default {
           "header-bg": "hsl(var(--table-header-bg))",
           "header-text": "hsl(var(--table-header-text))",
           "row-hover": "hsl(var(--table-row-hover))",
+          "row-stripe": "hsl(var(--table-row-stripe))",
         },
       },
       borderRadius: {
