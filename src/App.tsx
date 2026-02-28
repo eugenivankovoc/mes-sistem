@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PageTitleProvider } from "@/contexts/PageTitleContext";
 import { AuthGuard } from "@/components/AuthGuard";
+import { PublicRoute } from "@/components/PublicRoute";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ManagerLayout } from "@/layouts/ManagerLayout";
 import { AssistLayout } from "@/layouts/AssistLayout";
@@ -36,9 +37,14 @@ const App = () => (
         <AuthProvider>
           <PageTitleProvider>
             <Routes>
-              {/* Public routes – no layout */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              {/* Public routes – redirect to home if already logged in */}
+              <Route path="/login" element={
+                <PublicRoute><LoginPage /></PublicRoute>
+              } />
+              <Route path="/forgot-password" element={
+                <PublicRoute><ForgotPasswordPage /></PublicRoute>
+              } />
+              {/* Reset-password: allow even when logged in (recovery flow) */}
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -64,7 +70,7 @@ const App = () => (
                 <Route path="/batches" element={<BatchesPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/admin" element={
-                  <ProtectedRoute allowedRoles={["administrator"]}>
+                  <ProtectedRoute allowedRoles={["administrator"]} showForbidden>
                     <AdminPage />
                   </ProtectedRoute>
                 } />

@@ -1,13 +1,17 @@
 import { Navigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
+import ForbiddenPage from "@/pages/ForbiddenPage";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: AppRole[];
+  /** If true, operator can only see their own workstation; others get redirected home */
   requireOwnWorkstation?: boolean;
+  /** If true, show 403 instead of redirecting when role doesn't match */
+  showForbidden?: boolean;
 }
 
 function getHomeRoute(role: AppRole | null, workstationId: string | null): string {
@@ -17,7 +21,7 @@ function getHomeRoute(role: AppRole | null, workstationId: string | null): strin
   return "/orders";
 }
 
-export function ProtectedRoute({ children, allowedRoles, requireOwnWorkstation }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, requireOwnWorkstation, showForbidden }: ProtectedRouteProps) {
   const { session, profile, loading } = useAuth();
   const role = profile?.role ?? null;
   const params = useParams();
@@ -37,8 +41,11 @@ export function ProtectedRoute({ children, allowedRoles, requireOwnWorkstation }
     return <Navigate to="/login" replace />;
   }
 
-  // Wrong role → redirect to their correct home page
+  // Wrong role → 403 or redirect
   if (allowedRoles && role && !allowedRoles.includes(role)) {
+    if (showForbidden) {
+      return <ForbiddenPage />;
+    }
     return <Navigate to={getHomeRoute(role, profile?.workstation_id ?? null)} replace />;
   }
 
