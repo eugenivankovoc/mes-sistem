@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, X, CalendarIcon } from "lucide-react";
+import { Search, X, CalendarIcon, SlidersHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Database } from "@/integrations/supabase/types";
 
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -54,6 +55,8 @@ export function OrderFilters({
   filteredCount, totalCount,
 }: Props) {
   const [localSearch, setLocalSearch] = useState(search);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const t = setTimeout(() => onSearchChange(localSearch), 300);
@@ -61,6 +64,7 @@ export function OrderFilters({
   }, [localSearch, onSearchChange]);
 
   const hasFilters = search || customerId || status || dateFrom || dateTo;
+  const activeFilterCount = [customerId, status, dateFrom, dateTo].filter(Boolean).length;
 
   const clearAll = () => {
     setLocalSearch("");
@@ -71,68 +75,49 @@ export function OrderFilters({
     onDateToChange(undefined);
   };
 
-  return (
-    <div className="rounded-lg border border-border bg-card p-3 sm:p-4 space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative w-full sm:w-auto sm:min-w-[260px] lg:w-[260px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pretraži naziv naloga..."
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            className="pl-9 pr-8 min-h-[48px] sm:min-h-0"
-          />
-          {localSearch && (
-            <button
-              onClick={() => { setLocalSearch(""); onSearchChange(""); }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[48px] min-w-[48px] flex items-center justify-center sm:min-h-0 sm:min-w-0"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+  const filterControls = (
+    <>
+      {/* Customer */}
+      <Select
+        value={customerId ?? "all"}
+        onValueChange={(v) => onCustomerChange(v === "all" ? null : v)}
+      >
+        <SelectTrigger className="w-full sm:w-[200px] min-h-[48px] sm:min-h-0">
+          <SelectValue placeholder="Svi kupci" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Svi kupci</SelectItem>
+          {customers.map((c) => (
+            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* Customer */}
-        <Select
-          value={customerId ?? "all"}
-          onValueChange={(v) => onCustomerChange(v === "all" ? null : v)}
-        >
-          <SelectTrigger className="w-full sm:w-[200px] min-h-[48px] sm:min-h-0">
-            <SelectValue placeholder="Svi kupci" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Svi kupci</SelectItem>
-            {customers.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Status */}
+      <Select
+        value={status ?? "all"}
+        onValueChange={(v) => onStatusChange(v === "all" ? null : (v as OrderStatus))}
+      >
+        <SelectTrigger className="w-full sm:w-[180px] min-h-[48px] sm:min-h-0">
+          <SelectValue placeholder="Svi statusi" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Svi statusi</SelectItem>
+          {statusOptions.map((s) => (
+            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* Status */}
-        <Select
-          value={status ?? "all"}
-          onValueChange={(v) => onStatusChange(v === "all" ? null : (v as OrderStatus))}
-        >
-          <SelectTrigger className="w-full sm:w-[180px] min-h-[48px] sm:min-h-0">
-            <SelectValue placeholder="Svi statusi" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Svi statusi</SelectItem>
-            {statusOptions.map((s) => (
-              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Date From */}
+      {/* Date From */}
+      <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex">
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn("w-full sm:w-[140px] justify-start text-left font-normal min-h-[48px] sm:min-h-0", !dateFrom && "text-muted-foreground")}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
               {dateFrom ? format(dateFrom, "dd.MM.yyyy") : "Od"}
             </Button>
           </PopoverTrigger>
@@ -154,7 +139,7 @@ export function OrderFilters({
               variant="outline"
               className={cn("w-full sm:w-[140px] justify-start text-left font-normal min-h-[48px] sm:min-h-0", !dateTo && "text-muted-foreground")}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
               {dateTo ? format(dateTo, "dd.MM.yyyy") : "Do"}
             </Button>
           </PopoverTrigger>
@@ -168,13 +153,67 @@ export function OrderFilters({
             />
           </PopoverContent>
         </Popover>
+      </div>
 
-        {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearAll} className="text-muted-foreground min-h-[48px] sm:min-h-0 w-full sm:w-auto">
-            <X className="h-4 w-4 mr-1" /> Poništi filtere
+      {hasFilters && (
+        <Button variant="ghost" size="sm" onClick={clearAll} className="text-muted-foreground min-h-[48px] sm:min-h-0 w-full sm:w-auto">
+          <X className="h-4 w-4 mr-1" /> Poništi filtere
+        </Button>
+      )}
+    </>
+  );
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-3 sm:p-4 space-y-3">
+      {/* Search row – always visible */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Pretraži naloge..."
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            className="pl-9 pr-8 min-h-[48px] sm:min-h-0"
+          />
+          {localSearch && (
+            <button
+              onClick={() => { setLocalSearch(""); onSearchChange(""); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        {/* Mobile filter toggle */}
+        {isMobile && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="min-h-[48px] min-w-[48px] shrink-0 relative"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
           </Button>
         )}
       </div>
+
+      {/* Desktop: always show filters inline | Mobile: collapsible */}
+      {isMobile ? (
+        filtersOpen && (
+          <div className="flex flex-col gap-3 pt-1 border-t border-border">
+            {filterControls}
+          </div>
+        )
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          {filterControls}
+        </div>
+      )}
 
       {/* Results count */}
       <div className="flex justify-end">
