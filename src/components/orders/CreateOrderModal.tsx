@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCustomers } from "@/hooks/useOrders";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -42,6 +43,12 @@ export function CreateOrderModal({ open, onOpenChange }: Props) {
   const [isUrgent, setIsUrgent] = useState(false);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const isDirty = useMemo(
+    () => !!(orderName.trim() || customerId || dueDate || isUrgent || notes.trim()),
+    [orderName, customerId, dueDate, isUrgent, notes]
+  );
+  useUnsavedChangesGuard(isDirty && open);
 
   const resetForm = () => {
     setOrderName("");

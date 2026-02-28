@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { useCustomers } from "@/hooks/useOrders";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { OrderRow } from "@/hooks/useOrders";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -41,6 +42,18 @@ export function EditOrderModal({ order, open, onOpenChange }: Props) {
   const [isUrgent, setIsUrgent] = useState(false);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const isDirty = useMemo(() => {
+    if (!order) return false;
+    return (
+      orderName !== order.order_number ||
+      customerId !== (order.customer_id ?? "") ||
+      (dueDate ? format(dueDate, "yyyy-MM-dd") : null) !== (order.due_date ?? null) ||
+      isUrgent !== (order.priority > 0) ||
+      notes !== (order.notes ?? "")
+    );
+  }, [order, orderName, customerId, dueDate, isUrgent, notes]);
+  useUnsavedChangesGuard(isDirty && open);
 
   useEffect(() => {
     if (order && open) {
