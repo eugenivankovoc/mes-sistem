@@ -1,0 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', system-ui, sans-serif;
+
+    --background: 0 0% 98%;
+    --foreground: 220 13% 9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 9%;
+
+    --primary: 214 68% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 214 68% 39%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 214 68% 39%;
+
+    --destructive: 4 72% 46%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 214 68% 39%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar-background: 212 55% 16%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 214 68% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 212 45% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 212 40% 25%;
+    --sidebar-ring: 214 68% 39%;
+    --sidebar-active: 212 38% 30%;
+
+    /* Topbar */
+    --topbar-background: 0 0% 100%;
+    --topbar-foreground: 212 55% 16%;
+    --topbar-border: 220 13% 91%;
+
+    /* Status badges */
+    --status-new-bg: 174 41% 92%;
+    --status-new-text: 174 100% 24%;
+    --status-new-dot: 174 42% 51%;
+
+    --status-ready-bg: 210 100% 95%;
+    --status-ready-text: 214 79% 37%;
+    --status-ready-dot: 210 81% 61%;
+
+    --status-released-bg: 36 100% 94%;
+    --status-released-text: 24 100% 45%;
+    --status-released-dot: 33 100% 58%;
+
+    --status-in-production-bg: 120 39% 95%;
+    --status-in-production-text: 122 39% 34%;
+    --status-in-production-dot: 122 38% 57%;
+
+    --status-completed-bg: 120 39% 95%;
+    --status-completed-text: 122 47% 24%;
+    --status-completed-dot: 122 35% 39%;
+
+    --status-archived-bg: 0 0% 96%;
+    --status-archived-text: 0 0% 46%;
+    --status-archived-dot: 0 0% 74%;
+
+    --status-rework-bg: 0 100% 96%;
+    --status-rework-text: 0 67% 47%;
+    --status-rework-dot: 4 82% 63%;
+
+    /* Table */
+    --table-header-bg: 210 20% 98%;
+    --table-header-text: 220 9% 46%;
+    --table-row-hover: 210 20% 98%;
+  }
+
+  .dark {
+    --background: 212 55% 10%;
+    --foreground: 210 40% 98%;
+    --card: 212 55% 14%;
+    --card-foreground: 210 40% 98%;
+    --popover: 212 55% 14%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 214 68% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 212 45% 22%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 212 45% 22%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 212 45% 22%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 212 45% 22%;
+    --input: 212 45% 22%;
+    --ring: 214 68% 50%;
+    --sidebar-background: 212 60% 8%;
+    --sidebar-foreground: 210 40% 95%;
+    --sidebar-primary: 214 68% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 212 50% 15%;
+    --sidebar-accent-foreground: 210 40% 95%;
+    --sidebar-border: 212 40% 18%;
+    --sidebar-ring: 214 68% 50%;
+    --sidebar-active: 212 45% 20%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: var(--font-sans);
+  }
+}
