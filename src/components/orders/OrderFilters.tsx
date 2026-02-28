@@ -25,12 +25,12 @@ interface Props {
 }
 
 const statusOptions: { value: OrderStatus; label: string }[] = [
-  { value: "new", label: "New" },
-  { value: "ready", label: "Ready" },
-  { value: "released", label: "Released" },
-  { value: "in_production", label: "In Production" },
-  { value: "completed", label: "Completed" },
-  { value: "archived", label: "Archived" },
+  { value: "new", label: "Novi" },
+  { value: "ready", label: "Spreman" },
+  { value: "released", label: "Pušteno" },
+  { value: "in_production", label: "U proizvodnji" },
+  { value: "completed", label: "Završeno" },
+  { value: "archived", label: "Arhivirano" },
 ];
 
 export function OrderFilters({
@@ -60,7 +60,7 @@ export function OrderFilters({
       <div className="relative w-64">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Order name"
+          placeholder="Naziv naloga"
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
           className="pl-9"
@@ -72,10 +72,10 @@ export function OrderFilters({
         onValueChange={(v) => onCustomerChange(v === "all" ? null : v)}
       >
         <SelectTrigger className="w-48">
-          <SelectValue placeholder="Customer name" />
+          <SelectValue placeholder="Svi kupci" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All customers</SelectItem>
+          <SelectItem value="all">Svi kupci</SelectItem>
           {customers.map((c) => (
             <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
           ))}
@@ -87,10 +87,10 @@ export function OrderFilters({
         onValueChange={(v) => onStatusChange(v === "all" ? null : (v as OrderStatus))}
       >
         <SelectTrigger className="w-44">
-          <SelectValue placeholder="Order status" />
+          <SelectValue placeholder="Svi statusi" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All</SelectItem>
+          <SelectItem value="all">Svi statusi</SelectItem>
           {statusOptions.map((s) => (
             <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
           ))}
@@ -99,7 +99,7 @@ export function OrderFilters({
 
       {hasFilters && (
         <Button variant="ghost" size="sm" onClick={clearAll} className="text-muted-foreground">
-          <X className="h-4 w-4 mr-1" /> Clear
+          <X className="h-4 w-4 mr-1" /> Očisti
         </Button>
       )}
     </div>

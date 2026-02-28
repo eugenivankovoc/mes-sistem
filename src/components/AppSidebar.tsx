@@ -1,6 +1,5 @@
 import {
   ClipboardList,
-  Archive,
   BarChart3,
   Layers,
   PieChart,
@@ -27,7 +26,6 @@ import { Factory } from "lucide-react";
 
 const menuItems = [
   { title: "Upravljanje nalozima", url: "/orders", icon: ClipboardList, roles: ["administrator", "planner"] },
-  { title: "Arhiva naloga", url: "/archive", icon: Archive, roles: ["administrator", "planner"] },
   { title: "Napredak naloga", url: "/progress", icon: BarChart3, roles: ["administrator", "planner"] },
   { title: "Batch formacija", url: "/batches", icon: Layers, roles: ["administrator", "planner"] },
   { title: "Izvještaji", url: "/reports", icon: PieChart, roles: ["administrator", "planner"] },
