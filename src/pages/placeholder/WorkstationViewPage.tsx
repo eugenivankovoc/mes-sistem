@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, X, AlertTriangle, Check, RotateCcw, Package, Loader2 } from "lucide-react";
+import { Search, X, AlertTriangle, Check, RotateCcw, Package, Loader2, Camera } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BulkActionBar } from "@/components/workstation/BulkActionBar";
 import { ReworkModal } from "@/components/workstation/ReworkModal";
+import { QrScannerModal } from "@/components/workstation/QrScannerModal";
 
 interface PartRow {
   id: string;
@@ -58,6 +59,7 @@ export default function WorkstationViewPage() {
   const [rowStates, setRowStates] = useState<Record<string, RowState>>({});
   const [reworkPart, setReworkPart] = useState<PartRow | null>(null);
   const [confirmAllOpen, setConfirmAllOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   // Prevent zoom on tablets
@@ -303,18 +305,58 @@ export default function WorkstationViewPage() {
       rework_reason: reason,
     });
 
-    setReworkPending(false);
-
     if (error) {
+      setReworkPending(false);
       toast.error("Greška pri prijavi dorade");
       return;
     }
 
-    toast.success("Dorada prijavljena");
+    // Notify all planners and admins
+    try {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["administrator", "planner"]);
+
+      if (roles?.length) {
+        const notifications = roles.map((r) => ({
+          user_id: r.user_id,
+          title: "Dorada prijavljena",
+          message: `Dio "${reworkPart.name}" (nalog ${reworkPart.order_number}) zahtijeva doradu: ${reason.substring(0, 100)}`,
+        }));
+        await supabase.from("notifications").insert(notifications);
+      }
+    } catch { /* notification failure is non-critical */ }
+
+    setReworkPending(false);
+    toast.success("Dorada prijavljena. Planer je obaviješten.");
     setReworkPart(null);
     queryClient.invalidateQueries({ queryKey: ["workstation-parts", id] });
     queryClient.invalidateQueries({ queryKey: ["pending-parts", id] });
   }, [user, id, reworkPart, queryClient]);
+
+  // QR scan handler
+  const handleQrScan = useCallback((data: { id?: string; pn?: string; on?: string; raw: string }) => {
+    setQrOpen(false);
+
+    if (data.id) {
+      const found = parts.find((p) => p.id === data.id);
+      if (found) {
+        confirmPart(found.id);
+        return;
+      }
+    }
+
+    if (data.pn) {
+      const found = parts.find((p) => p.part_number === data.pn);
+      if (found) {
+        confirmPart(found.id);
+        return;
+      }
+    }
+
+    toast.warning("Dio nije pronađen na ovoj stanici");
+  }, [parts, confirmPart]);
 
   // Toggle checkbox
   const togglePart = (partId: string) => {
@@ -376,7 +418,7 @@ export default function WorkstationViewPage() {
       </div>
 
       {/* Parts list */}
-      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: selectedParts.size > 0 ? 80 : 0 }}>
+      <div className="flex-1 overflow-y-auto">
         {partsLoading || wsLoading ? (
           <div className="flex items-center justify-center p-12">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -506,12 +548,30 @@ export default function WorkstationViewPage() {
         )}
       </div>
 
+      {/* QR Scanner button */}
+      <div className="flex justify-center py-3" style={{ paddingBottom: selectedParts.size > 0 ? 80 : 12 }}>
+        <button
+          onClick={() => setQrOpen(true)}
+          className="h-[52px] w-[200px] rounded-[26px] bg-primary text-primary-foreground font-bold text-sm shadow-lg hover:opacity-90 transition-opacity active:scale-[0.98] flex items-center justify-center gap-2"
+        >
+          <Camera className="h-5 w-5" />
+          Skeniraj QR
+        </button>
+      </div>
+
       {/* Bulk action bar */}
       <BulkActionBar
         count={selectedParts.size}
         onConfirm={() => confirmMultiple([...selectedParts])}
         onClear={() => setSelectedParts(new Set())}
         isPending={bulkPending}
+      />
+
+      {/* QR Scanner modal */}
+      <QrScannerModal
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        onScan={handleQrScan}
       />
 
       {/* Rework modal */}

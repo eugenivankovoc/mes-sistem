@@ -29,8 +29,10 @@ export function ReworkModal({
 }: ReworkModalProps) {
   const [reason, setReason] = useState("");
 
+  const isValid = reason.trim().length >= 10;
+
   const handleSubmit = () => {
-    if (!reason.trim()) return;
+    if (!isValid) return;
     onSubmit(reason.trim());
     setReason("");
   };
@@ -63,23 +65,34 @@ export function ReworkModal({
               id="rework-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Opišite razlog dorade..."
-              rows={3}
+              placeholder="Opišite što je pogrešno s ovim dijelom..."
+              rows={4}
               autoFocus
             />
+            {reason.trim().length > 0 && reason.trim().length < 10 && (
+              <p className="text-xs text-destructive">
+                Minimalno 10 znakova ({reason.trim().length}/10)
+              </p>
+            )}
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isPending}>
-            Odustani
-          </Button>
+        <DialogFooter className="flex flex-col gap-2 sm:flex-col">
           <Button
             variant="destructive"
             onClick={handleSubmit}
-            disabled={!reason.trim() || isPending}
+            disabled={!isValid || isPending}
+            className="w-full h-14 text-sm font-bold"
           >
             {isPending ? "Šaljem..." : "Prijavi doradu"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={isPending}
+            className="w-full"
+          >
+            Odustani
           </Button>
         </DialogFooter>
       </DialogContent>
