@@ -119,7 +119,11 @@ export default function OrdersPage() {
         animatedRows={animatedRows}
       />
 
-      <BulkActionBar count={selected.size} onClear={() => setSelected(new Set())} />
+      <BulkActionBar
+        count={selected.size}
+        onClear={() => setSelected(new Set())}
+        selectedOrders={orders.filter((o) => selected.has(o.id))}
+      />
       <CreateOrderModal open={createOpen} onOpenChange={setCreateOpen} />
       <EditOrderModal order={editOrder} open={!!editOrder} onOpenChange={(o) => !o && setEditOrder(null)} />
       <DuplicateOrderDialog order={duplicateOrder} open={!!duplicateOrder} onOpenChange={(o) => !o && setDuplicateOrder(null)} />
