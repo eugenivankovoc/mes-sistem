@@ -14,8 +14,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { SendHorizontal, CheckCircle, Printer, FileDown } from "lucide-react";
+import { SendHorizontal, CheckCircle, Printer, FileDown, FileSpreadsheet, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { EditOrderModal } from "@/components/orders/EditOrderModal";
+import type { OrderRow } from "@/hooks/useOrders";
 
 interface Props {
   order: OrderDetail;
@@ -27,6 +29,7 @@ export function OrderActionButtons({ order }: Props) {
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [releasing, setReleasing] = useState(false);
   const [markingReady, setMarkingReady] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const allParts = order.articles.flatMap((a) => a.parts);
@@ -83,8 +86,54 @@ export function OrderActionButtons({ order }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     toast.info(`Uvoz datoteke "${file.name}" — uskoro dostupno`);
-    // Reset input
     e.target.value = "";
+  };
+
+  const handleExportCSV = () => {
+    const allParts = order.articles.flatMap((a) =>
+      a.parts.map((p) => ({
+        article: a.name,
+        part_number: p.part_number,
+        name: p.name,
+        material: p.material ?? "",
+        quantity: p.quantity,
+        length: p.length ?? "",
+        width: p.width ?? "",
+        thickness: p.thickness ?? "",
+        status: p.status,
+      }))
+    );
+    if (allParts.length === 0) {
+      toast.info("Nema dijelova za izvoz.");
+      return;
+    }
+    const headers = ["Artikl", "Broj dijela", "Naziv", "Materijal", "Količina", "Dužina", "Širina", "Debljina", "Status"];
+    const rows = allParts.map((p) =>
+      [p.article, p.part_number, p.name, p.material, p.quantity, p.length, p.width, p.thickness, p.status].join(",")
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${order.order_number}-dijelovi.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV izvezen");
+  };
+
+  const orderAsRow: OrderRow = {
+    id: order.id,
+    order_number: order.order_number,
+    status: order.status,
+    priority: order.priority,
+    notes: order.notes,
+    due_date: order.due_date,
+    created_at: order.created_at,
+    customer_id: order.customer_id,
+    customer_name: order.customer_name,
+    parts_total: allParts.length,
+    parts_completed: allParts.filter((p) => p.status === "completed").length,
   };
 
   return (
@@ -123,6 +172,18 @@ export function OrderActionButtons({ order }: Props) {
           Uvezi dijelove (CSV)
         </Button>
 
+        {/* Export CSV */}
+        <Button variant="secondary" className="w-full justify-start gap-2" onClick={handleExportCSV}>
+          <FileSpreadsheet className="h-4 w-4" />
+          Izvozi listu rezanja
+        </Button>
+
+        {/* Edit order */}
+        <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => setEditOpen(true)}>
+          <Pencil className="h-4 w-4" />
+          Uredi nalog
+        </Button>
+
         <input
           ref={fileInputRef}
           type="file"
@@ -149,6 +210,9 @@ export function OrderActionButtons({ order }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit order modal */}
+      <EditOrderModal order={orderAsRow} open={editOpen} onOpenChange={setEditOpen} />
     </>
   );
 }
