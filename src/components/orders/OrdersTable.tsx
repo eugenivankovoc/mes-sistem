@@ -45,7 +45,7 @@ export function OrdersTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow className="bg-table-header-bg hover:bg-table-header-bg border-b border-border">
+        <TableRow className="bg-table-header-bg hover:bg-table-header-bg">
           <TableHead className="w-10">
             <Checkbox
               checked={allSelected}

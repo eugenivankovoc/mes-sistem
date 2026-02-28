@@ -9,52 +9,54 @@
     --font-sans: 'Inter', system-ui, sans-serif;
 
     --background: 0 0% 98%;
-    --foreground: 220 13% 9%;
+    --foreground: 213 40% 16%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 13% 9%;
+    --card-foreground: 213 40% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 13% 9%;
+    --popover-foreground: 213 40% 16%;
 
-    --primary: 214 68% 39%;
+    --primary: 214 69% 39%;
     --primary-foreground: 0 0% 100%;
+    --primary-hover: 214 72% 34%;
 
     --secondary: 210 40% 96%;
-    --secondary-foreground: 214 68% 39%;
+    --secondary-foreground: 214 69% 39%;
 
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
 
     --accent: 210 40% 96%;
-    --accent-foreground: 214 68% 39%;
+    --accent-foreground: 214 69% 39%;
 
-    --destructive: 4 72% 46%;
+    --destructive: 4 66% 46%;
     --destructive-foreground: 0 0% 100%;
+    --destructive-hover: 4 66% 41%;
 
     --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 214 68% 39%;
+    --input: 216 12% 84%;
+    --ring: 214 69% 39%;
 
-    --radius: 0.5rem;
+    --radius: 0.375rem;
 
     /* Sidebar */
     --sidebar-background: 212 55% 16%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 214 68% 39%;
+    --sidebar-primary: 214 69% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 212 45% 22%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 212 40% 25%;
-    --sidebar-ring: 214 68% 39%;
+    --sidebar-ring: 214 69% 39%;
     --sidebar-active: 212 38% 30%;
 
     /* Topbar */
     --topbar-background: 0 0% 100%;
-    --topbar-foreground: 212 55% 16%;
+    --topbar-foreground: 213 40% 16%;
     --topbar-border: 220 13% 91%;
 
-    /* Status badges */
+    /* Status badges – converted from hex to HSL */
     --status-new-bg: 174 41% 92%;
     --status-new-text: 174 100% 24%;
     --status-new-dot: 174 42% 51%;
@@ -87,6 +89,10 @@
     --table-header-bg: 210 20% 98%;
     --table-header-text: 220 9% 46%;
     --table-row-hover: 210 20% 98%;
+    --table-row-stripe: 0 0% 98%;
+
+    /* Card shadow */
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
 
   .dark {
@@ -98,6 +104,7 @@
     --popover-foreground: 210 40% 98%;
     --primary: 214 68% 50%;
     --primary-foreground: 0 0% 100%;
+    --primary-hover: 214 68% 45%;
     --secondary: 212 45% 22%;
     --secondary-foreground: 210 40% 98%;
     --muted: 212 45% 22%;
@@ -106,6 +113,7 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
+    --destructive-hover: 0 63% 26%;
     --border: 212 45% 22%;
     --input: 212 45% 22%;
     --ring: 214 68% 50%;
