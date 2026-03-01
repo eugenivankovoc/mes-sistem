@@ -17,6 +17,8 @@ export interface OrderRow {
   customer_name: string | null;
   parts_total: number;
   parts_completed: number;
+  batch_id: string | null;
+  batch_name: string | null;
 }
 
 interface Filters {
@@ -66,7 +68,7 @@ export function useOrders(filters: Filters, sort: SortConfig) {
     queryFn: async (): Promise<OrderRow[]> => {
       let q = supabase
         .from("orders")
-        .select("id, order_number, status, priority, notes, due_date, created_at, customer_id, customers(name), articles(parts(id, status))");
+        .select("id, order_number, status, priority, notes, due_date, created_at, customer_id, batch_id, customers(name), articles(parts(id, status))");
 
       if (filters.search) {
         q = q.ilike("order_number", `%${filters.search}%`);
@@ -91,7 +93,7 @@ export function useOrders(filters: Filters, sort: SortConfig) {
       const { data, error } = await q;
       if (error) throw error;
 
-      return (data ?? []).map((row: any) => {
+      const rows = (data ?? []).map((row: any) => {
         const allParts = (row.articles ?? []).flatMap((a: any) => a.parts ?? []);
         return {
           id: row.id,
@@ -105,8 +107,25 @@ export function useOrders(filters: Filters, sort: SortConfig) {
           customer_name: row.customers?.name ?? null,
           parts_total: allParts.length,
           parts_completed: allParts.filter((p: any) => p.status === "completed").length,
+          batch_id: row.batch_id ?? null,
+          batch_name: null as string | null, // will be enriched below
         };
       });
+
+      // Enrich batch names
+      const batchIds = [...new Set(rows.map((r) => r.batch_id).filter(Boolean))] as string[];
+      if (batchIds.length) {
+        const { data: batches } = await supabase
+          .from("batches")
+          .select("id, name")
+          .in("id", batchIds);
+        const batchMap = Object.fromEntries((batches ?? []).map((b) => [b.id, b.name]));
+        rows.forEach((r) => {
+          if (r.batch_id) r.batch_name = batchMap[r.batch_id] ?? null;
+        });
+      }
+
+      return rows;
     },
   });
 

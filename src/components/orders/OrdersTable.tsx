@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderStatusBadge } from "./OrderStatusBadge";
+import { BatchBadge } from "./BatchBadge";
 import type { OrderRow, RowAnimation } from "@/hooks/useOrders";
 
 interface ColumnDef {
@@ -162,12 +163,17 @@ export function OrdersTable({
                         <TableCell key={col.key}>
                           <div className="flex items-center gap-2">
                             <div>
-                              <button
-                                className="font-semibold text-sm text-foreground hover:text-primary hover:underline"
-                                onClick={() => navigate(`/orders/${order.id}`)}
-                              >
-                                {order.order_number}
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  className="font-semibold text-sm text-foreground hover:text-primary hover:underline"
+                                  onClick={() => navigate(`/orders/${order.id}`)}
+                                >
+                                  {order.order_number}
+                                </button>
+                                {order.batch_id && (
+                                  <BatchBadge batchId={order.batch_id} batchName={order.batch_name} />
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground">{order.order_number}</p>
                             </div>
                             {order.priority === 1 && (

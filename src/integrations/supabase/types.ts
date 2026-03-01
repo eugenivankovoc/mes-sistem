@@ -91,6 +91,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          material_filter: string | null
           name: string | null
           status: string
           updated_at: string
@@ -100,6 +101,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          material_filter?: string | null
           name?: string | null
           status?: string
           updated_at?: string
@@ -109,6 +111,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          material_filter?: string | null
           name?: string | null
           status?: string
           updated_at?: string
@@ -244,6 +247,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          batch_id: string | null
           completed_at: string | null
           created_at: string
           created_by: string | null
@@ -259,6 +263,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          batch_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -274,6 +279,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          batch_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -289,6 +295,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
