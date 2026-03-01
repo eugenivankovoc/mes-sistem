@@ -1,10 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { format, isPast, parseISO } from "date-fns";
+import {
+  Scissors,
+  AlignLeft,
+  Cpu,
+  CircleDot,
+  ListOrdered,
+  Wrench,
+  CheckCircle,
+  Package,
+  type LucideIcon,
+} from "lucide-react";
 import type { OrderProgress } from "@/hooks/useProgressData";
 
 interface Props {
@@ -12,30 +21,23 @@ interface Props {
   isLoading: boolean;
 }
 
-function MiniBar({ done, total }: { done: number; total: number }) {
-  if (total === 0) {
-    return (
-      <div className="flex flex-col items-center gap-0.5">
-        <span className="text-[10px] text-muted-foreground">–</span>
-        <div className="h-1.5 w-10 rounded-full bg-muted" />
-      </div>
-    );
+const WS_ICON_MAP: Record<string, LucideIcon> = {
+  REZ: Scissors,
+  KANT: AlignLeft,
+  CNC: Cpu,
+  BUS: CircleDot,
+  SORT: ListOrdered,
+  MONT: Wrench,
+  QK: CheckCircle,
+  PAK: Package,
+};
+
+function getWsIcon(code: string): LucideIcon | null {
+  const upper = code.toUpperCase();
+  for (const [key, icon] of Object.entries(WS_ICON_MAP)) {
+    if (upper.includes(key)) return icon;
   }
-  const pct = Math.round((done / total) * 100);
-  const isDone = done === total;
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className={cn("text-[10px] font-medium", isDone ? "text-status-completed-text" : "text-primary")}>
-        {done}/{total}
-      </span>
-      <div className="h-1.5 w-10 rounded-full bg-muted overflow-hidden">
-        <div
-          className={cn("h-full rounded-full transition-all", isDone ? "bg-status-completed-dot" : "bg-primary")}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
+  return null;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -48,9 +50,40 @@ function StatusBadge({ status }: { status: string }) {
     in_production: "bg-status-in-production-bg text-status-in-production-text",
   };
   return (
-    <Badge variant="outline" className={cn("text-xs border-0", colors[status])}>
+    <Badge variant="outline" className={cn("text-xs border-0 whitespace-nowrap", colors[status])}>
       {labels[status] ?? status}
     </Badge>
+  );
+}
+
+function WsDot({ done, total }: { done: number; total: number }) {
+  if (total === 0) {
+    // gray - not needed
+    return (
+      <div className="flex items-center justify-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-muted-foreground/30 shrink-0" />
+        <span className="text-xs text-muted-foreground">0/0</span>
+      </div>
+    );
+  }
+  const completed = done >= total;
+  return (
+    <div className="flex items-center justify-center gap-1.5">
+      <span
+        className={cn(
+          "h-2 w-2 rounded-full shrink-0",
+          completed ? "bg-status-completed-dot" : "bg-primary"
+        )}
+      />
+      <span
+        className={cn(
+          "text-xs font-medium",
+          completed ? "text-status-completed-text" : "text-foreground"
+        )}
+      >
+        {done}/{total}
+      </span>
+    </div>
   );
 }
 
@@ -75,62 +108,51 @@ export function OrderProgressTable({ data, isLoading }: Props) {
     );
   }
 
-  // Collect unique workstation codes from first order (they're the same for all)
   const wsCols = data[0]?.workstations ?? [];
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Naziv naloga</TableHead>
-          <TableHead>Kupac</TableHead>
-          <TableHead>Isporuka</TableHead>
-          {wsCols.map((ws) => (
-            <TableHead key={ws.id} className="text-center px-1 min-w-[52px]">
-              {ws.code}
-            </TableHead>
-          ))}
-          <TableHead className="min-w-[120px]">Ukupno</TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead className="min-w-[140px]">Naziv naloga</TableHead>
+          <TableHead className="min-w-[100px]">Status</TableHead>
+          <TableHead className="min-w-[80px] text-center">Uk. dijelova</TableHead>
+          {wsCols.map((ws) => {
+            const Icon = getWsIcon(ws.code);
+            return (
+              <TableHead key={ws.id} className="text-center px-1 min-w-[72px]">
+                <div className="flex flex-col items-center gap-0.5">
+                  {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground" />}
+                  <span className="truncate max-w-[64px] block text-[10px]">{ws.code}</span>
+                </div>
+              </TableHead>
+            );
+          })}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {data.map((order) => {
-          const pct = order.totalParts > 0 ? Math.round((order.totalDone / order.totalParts) * 100) : 0;
-          const overdue = order.dueDate ? isPast(parseISO(order.dueDate)) : false;
-
-          return (
-            <TableRow
-              key={order.id}
-              className="cursor-pointer"
-              onClick={() => navigate(`/orders/${order.id}`)}
-            >
-              <TableCell className="font-semibold text-primary hover:underline">
-                {order.orderNumber}
+        {data.map((order) => (
+          <TableRow
+            key={order.id}
+            className="cursor-pointer"
+            onClick={() => navigate(`/orders/${order.id}`)}
+          >
+            <TableCell className="font-semibold text-primary hover:underline">
+              {order.orderNumber}
+            </TableCell>
+            <TableCell>
+              <StatusBadge status={order.status} />
+            </TableCell>
+            <TableCell className="text-center text-sm text-muted-foreground">
+              {order.totalParts}
+            </TableCell>
+            {order.workstations.map((ws) => (
+              <TableCell key={ws.id} className="text-center px-1">
+                <WsDot done={ws.done} total={ws.total} />
               </TableCell>
-              <TableCell className="text-muted-foreground">
-                {order.customerName ?? "–"}
-              </TableCell>
-              <TableCell className={cn(overdue && "text-destructive font-medium")}>
-                {order.dueDate ? format(parseISO(order.dueDate), "dd.MM.yyyy") : "–"}
-              </TableCell>
-              {order.workstations.map((ws) => (
-                <TableCell key={ws.id} className="text-center px-1">
-                  <MiniBar done={ws.done} total={ws.total} />
-                </TableCell>
-              ))}
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Progress value={pct} className="h-2 flex-1" />
-                  <span className="text-xs font-medium text-muted-foreground w-8">{pct}%</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={order.status} />
-              </TableCell>
-            </TableRow>
-          );
-        })}
+            ))}
+          </TableRow>
+        ))}
       </TableBody>
     </Table>
   );
