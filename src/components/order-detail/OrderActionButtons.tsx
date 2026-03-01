@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SendHorizontal, CheckCircle, Printer, FileDown, FileSpreadsheet, Pencil } from "lucide-react";
+import { exportCuttingList as importCuttingExport } from "@/lib/exportCuttingList";
 import { toast } from "sonner";
 import { EditOrderModal } from "@/components/orders/EditOrderModal";
 import type { OrderRow } from "@/hooks/useOrders";
@@ -90,36 +91,7 @@ export function OrderActionButtons({ order }: Props) {
   };
 
   const handleExportCSV = () => {
-    const allParts = order.articles.flatMap((a) =>
-      a.parts.map((p) => ({
-        article: a.name,
-        part_number: p.part_number,
-        name: p.name,
-        material: p.material ?? "",
-        quantity: p.quantity,
-        length: p.length ?? "",
-        width: p.width ?? "",
-        thickness: p.thickness ?? "",
-        status: p.status,
-      }))
-    );
-    if (allParts.length === 0) {
-      toast.info("Nema dijelova za izvoz.");
-      return;
-    }
-    const headers = ["Artikl", "Broj dijela", "Naziv", "Materijal", "Količina", "Dužina", "Širina", "Debljina", "Status"];
-    const rows = allParts.map((p) =>
-      [p.article, p.part_number, p.name, p.material, p.quantity, p.length, p.width, p.thickness, p.status].join(",")
-    );
-    const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${order.order_number}-dijelovi.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV izvezen");
+    importCuttingExport({ orderIds: [order.id], filenamePrefix: order.order_number });
   };
 
   const orderAsRow: OrderRow = {
@@ -134,6 +106,8 @@ export function OrderActionButtons({ order }: Props) {
     customer_name: order.customer_name,
     parts_total: allParts.length,
     parts_completed: allParts.filter((p) => p.status === "completed").length,
+    batch_id: null,
+    batch_name: null,
   };
 
   return (
