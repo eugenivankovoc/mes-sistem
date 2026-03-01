@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useSetPageTitle } from "@/hooks/useSetPageTitle";
-import { useProgressKpi, useWorkstationThroughput, type DateFilter } from "@/hooks/useProgressData";
+import {
+  useProgressKpi,
+  useWorkstationThroughput,
+  useOrderProgress,
+  useReworkAlerts,
+  type DateFilter,
+} from "@/hooks/useProgressData";
 import { KpiCard } from "@/components/progress/KpiCard";
 import { WorkstationThroughputTable } from "@/components/progress/WorkstationThroughputTable";
+import { OrderProgressTable } from "@/components/progress/OrderProgressTable";
+import { ReworkAlertsSection } from "@/components/progress/ReworkAlertsSection";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, ClipboardList, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
@@ -21,10 +29,14 @@ export default function ProgressPage() {
 
   const { data: kpi, isLoading: kpiLoading } = useProgressKpi(dateFilter);
   const { data: throughput, isLoading: throughputLoading } = useWorkstationThroughput(dateFilter);
+  const { data: orderProgress, isLoading: orderProgressLoading } = useOrderProgress();
+  const { data: reworkAlerts, isLoading: reworkLoading } = useReworkAlerts();
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["progress-kpi"] });
     queryClient.invalidateQueries({ queryKey: ["workstation-throughput"] });
+    queryClient.invalidateQueries({ queryKey: ["order-progress"] });
+    queryClient.invalidateQueries({ queryKey: ["rework-alerts"] });
   };
 
   return (
@@ -94,6 +106,17 @@ export default function ProgressPage() {
         </h2>
         <WorkstationThroughputTable data={throughput} isLoading={throughputLoading} />
       </div>
+
+      {/* Orders Progress */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-foreground">
+          Napredak aktivnih naloga
+        </h2>
+        <OrderProgressTable data={orderProgress} isLoading={orderProgressLoading} />
+      </div>
+
+      {/* Rework Alerts */}
+      <ReworkAlertsSection data={reworkAlerts} isLoading={reworkLoading} />
     </div>
   );
 }
