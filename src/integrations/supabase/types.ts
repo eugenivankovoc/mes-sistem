@@ -397,6 +397,14 @@ export type Database = {
           name: string
           part_number: string
           quantity: number
+          requires_assembly: boolean
+          requires_cnc: boolean
+          requires_cutting: boolean
+          requires_drilling: boolean
+          requires_edgebanding: boolean
+          requires_packaging: boolean
+          requires_quality_check: boolean
+          requires_sorting: boolean
           status: Database["public"]["Enums"]["part_status"]
           thickness: number | null
           updated_at: string
@@ -418,6 +426,14 @@ export type Database = {
           name: string
           part_number: string
           quantity?: number
+          requires_assembly?: boolean
+          requires_cnc?: boolean
+          requires_cutting?: boolean
+          requires_drilling?: boolean
+          requires_edgebanding?: boolean
+          requires_packaging?: boolean
+          requires_quality_check?: boolean
+          requires_sorting?: boolean
           status?: Database["public"]["Enums"]["part_status"]
           thickness?: number | null
           updated_at?: string
@@ -439,6 +455,14 @@ export type Database = {
           name?: string
           part_number?: string
           quantity?: number
+          requires_assembly?: boolean
+          requires_cnc?: boolean
+          requires_cutting?: boolean
+          requires_drilling?: boolean
+          requires_edgebanding?: boolean
+          requires_packaging?: boolean
+          requires_quality_check?: boolean
+          requires_sorting?: boolean
           status?: Database["public"]["Enums"]["part_status"]
           thickness?: number | null
           updated_at?: string
