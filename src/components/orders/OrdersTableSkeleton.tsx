@@ -19,7 +19,7 @@ export function OrdersTableSkeleton() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className={i % 2 === 1 ? "bg-muted/30" : ""}>
             <TableCell><Skeleton className="h-4 w-4" /></TableCell>
             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
