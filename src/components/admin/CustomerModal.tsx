@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useConfirmBeforeClose } from "@/hooks/useConfirmBeforeClose";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +38,22 @@ export function CustomerModal({ open, onOpenChange, customer }: CustomerModalPro
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+
+  const isDirty = useMemo(() => {
+    if (isEdit && customer) {
+      return (
+        name !== customer.name ||
+        email !== (customer.email || "") ||
+        phone !== (customer.phone || "") ||
+        address !== (customer.address || "") ||
+        notes !== (customer.notes || "")
+      );
+    }
+    return !!(name || email || phone || address || notes);
+  }, [name, email, phone, address, notes, customer, isEdit]);
+
+  const { guardedOpenChange, showGuard, confirmClose, cancelClose } =
+    useConfirmBeforeClose(isDirty, onOpenChange);
 
   useEffect(() => {
     if (open) {
@@ -87,7 +105,8 @@ export function CustomerModal({ open, onOpenChange, customer }: CustomerModalPro
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={guardedOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Uredi klijenta" : "Dodaj klijenta"}</DialogTitle>
@@ -144,7 +163,7 @@ export function CustomerModal({ open, onOpenChange, customer }: CustomerModalPro
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => guardedOpenChange(false)}>
             Odustani
           </Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
@@ -153,5 +172,7 @@ export function CustomerModal({ open, onOpenChange, customer }: CustomerModalPro
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesDialog open={showGuard} onConfirm={confirmClose} onCancel={cancelClose} />
+    </>
   );
 }

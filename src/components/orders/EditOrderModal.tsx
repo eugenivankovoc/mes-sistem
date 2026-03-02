@@ -9,6 +9,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { OrderRow } from "@/hooks/useOrders";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { useConfirmBeforeClose } from "@/hooks/useConfirmBeforeClose";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -56,6 +58,9 @@ export function EditOrderModal({ order, open, onOpenChange }: Props) {
   }, [order, orderName, customerId, dueDate, isUrgent, notes]);
   useUnsavedChangesGuard(isDirty && open);
 
+  const { guardedOpenChange, showGuard, confirmClose, cancelClose } =
+    useConfirmBeforeClose(isDirty, onOpenChange);
+
   useEffect(() => {
     if (order && open) {
       setOrderName(order.order_number);
@@ -89,7 +94,8 @@ export function EditOrderModal({ order, open, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={guardedOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Uredi nalog</DialogTitle>
@@ -188,12 +194,14 @@ export function EditOrderModal({ order, open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Odustani</Button>
+          <Button variant="outline" onClick={() => guardedOpenChange(false)}>Odustani</Button>
           <Button onClick={handleSubmit} disabled={saving || !orderName.trim() || !customerId}>
             {saving ? "Spremanje..." : "Spremi promjene"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesDialog open={showGuard} onConfirm={confirmClose} onCancel={cancelClose} />
+    </>
   );
 }

@@ -9,6 +9,8 @@ import { useCustomers } from "@/hooks/useOrders";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { useConfirmBeforeClose } from "@/hooks/useConfirmBeforeClose";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -67,6 +69,9 @@ export function CreateOrderModal({ open, onOpenChange }: Props) {
     [orderName, customerId, dueDate, isUrgent, notes]
   );
   useUnsavedChangesGuard(isDirty && open);
+
+  const { guardedOpenChange, showGuard, confirmClose, cancelClose } =
+    useConfirmBeforeClose(isDirty, (v: boolean) => { if (!v) resetForm(); onOpenChange(v); });
 
   // Generate order number on open
   useEffect(() => {
@@ -165,13 +170,9 @@ export function CreateOrderModal({ open, onOpenChange }: Props) {
     setSaving(false);
   };
 
-  const handleClose = (v: boolean) => {
-    if (!v) resetForm();
-    onOpenChange(v);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <>
+    <Dialog open={open} onOpenChange={guardedOpenChange}>
       <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novi nalog</DialogTitle>
@@ -410,7 +411,7 @@ export function CreateOrderModal({ open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => handleClose(false)}>
+          <Button variant="outline" onClick={() => guardedOpenChange(false)}>
             Odustani
           </Button>
           <Button onClick={handleSubmit} disabled={saving}>
@@ -419,5 +420,7 @@ export function CreateOrderModal({ open, onOpenChange }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesDialog open={showGuard} onConfirm={confirmClose} onCancel={cancelClose} />
+    </>
   );
 }
