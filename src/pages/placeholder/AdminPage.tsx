@@ -1,7 +1,8 @@
-import { useState } from "react";
 import { useSetPageTitle } from "@/hooks/useSetPageTitle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { UsersTab } from "@/components/admin/UsersTab";
+import { WorkstationsTab } from "@/components/admin/WorkstationsTab";
+import { CustomersTab } from "@/components/admin/CustomersTab";
 
 export default function AdminPage() {
   useSetPageTitle("Admin postavke");
@@ -35,15 +36,11 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="workstations">
-          <div className="rounded-lg border border-border bg-card p-8 text-center">
-            <p className="text-muted-foreground">Upravljanje radnim stanicama — uskoro</p>
-          </div>
+          <WorkstationsTab />
         </TabsContent>
 
         <TabsContent value="customers">
-          <div className="rounded-lg border border-border bg-card p-8 text-center">
-            <p className="text-muted-foreground">Upravljanje klijentima — uskoro</p>
-          </div>
+          <CustomersTab />
         </TabsContent>
       </Tabs>
     </div>
