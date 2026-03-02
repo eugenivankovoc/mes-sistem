@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,11 +11,29 @@ export interface Notification {
   is_read: boolean;
   created_at: string;
   user_id: string;
+  reference_id: string | null;
+  reference_table: string | null;
+}
+
+// Tiny base64-encoded "ding" sound (~0.15s, 440Hz sine)
+const DING_DATA_URI =
+  "data:audio/wav;base64,UklGRlQFAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YTAFAAAAAACAgICAgICAgICAgICAgICA/3+AgICAgICAgICAgICAgICAgICA/38AAP9/AACAYICA/38AAIA" +
+  "AAAAAAAAAAAAAf4CAgH+AgICAgICA/38AAAAAAAAAAAAAAAAAAH+AgIB/gICAAAAAAAAAAAAAAAAA/3+AgH+AgIAAAACAgICAgICAgICAgICAgICA";
+
+function playDing() {
+  try {
+    const audio = new Audio(DING_DATA_URI);
+    audio.volume = 0.3;
+    audio.play().catch(() => {});
+  } catch {
+    // ignore
+  }
 }
 
 export function useNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const prevCountRef = useRef<number | null>(null);
 
   const query = useQuery({
     queryKey: ["notifications", user?.id],
@@ -61,15 +79,26 @@ export function useNotifications() {
     },
   });
 
+  // Realtime: on INSERT play ding + refetch
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
-      .channel("notifications-list")
+      .channel("notifications-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => {
+          playDing();
+          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["unread-notifications", user.id] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["unread-notifications", user.id] });
         }
       )
       .subscribe();

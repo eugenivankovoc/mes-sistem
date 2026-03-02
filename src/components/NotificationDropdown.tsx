@@ -1,4 +1,6 @@
 import { useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bell } from "lucide-react";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,12 @@ function timeAgo(iso: string): string {
   if (d.toDateString() === yesterday.toDateString()) {
     return `jučer ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
   }
-  return `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")}.${d.getFullYear()}`;
+  return `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")}. ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+}
+
+function getRoute(n: Notification): string | null {
+  if (n.reference_table === "orders" && n.reference_id) return `/orders/${n.reference_id}`;
+  return null;
 }
 
 interface Props {
@@ -39,6 +46,7 @@ interface Props {
 export function NotificationDropdown({ open, onClose }: Props) {
   const { data: notifications, isLoading, markAllRead, markOneRead } = useNotifications();
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!open) return;
@@ -52,6 +60,13 @@ export function NotificationDropdown({ open, onClose }: Props) {
   if (!open) return null;
 
   const unreadCount = notifications?.filter((n) => !n.is_read).length ?? 0;
+
+  const handleItemClick = (n: Notification) => {
+    if (!n.is_read) markOneRead.mutate(n.id);
+    const route = getRoute(n);
+    onClose();
+    if (route) navigate(route);
+  };
 
   return (
     <div
@@ -90,17 +105,16 @@ export function NotificationDropdown({ open, onClose }: Props) {
             ))}
           </div>
         ) : !notifications?.length ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            Nema obavijesti
+          <div className="p-10 flex flex-col items-center gap-2 text-muted-foreground">
+            <Bell className="h-8 w-8 opacity-40" />
+            <span className="text-sm">Nema novih obavijesti</span>
           </div>
         ) : (
           notifications.map((n) => (
             <NotificationItem
               key={n.id}
               notification={n}
-              onRead={() => {
-                if (!n.is_read) markOneRead.mutate(n.id);
-              }}
+              onClick={() => handleItemClick(n)}
             />
           ))
         )}
@@ -111,17 +125,19 @@ export function NotificationDropdown({ open, onClose }: Props) {
 
 function NotificationItem({
   notification: n,
-  onRead,
+  onClick,
 }: {
   notification: Notification;
-  onRead: () => void;
+  onClick: () => void;
 }) {
   const dotColor = TYPE_COLORS[n.type] ?? TYPE_COLORS.default;
 
   return (
     <button
-      onClick={onRead}
-      className="w-full text-left flex gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors duration-100"
+      onClick={onClick}
+      className={`w-full text-left flex gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors duration-100 ${
+        !n.is_read ? "border-l-[3px] border-l-primary" : ""
+      }`}
     >
       <span
         className="mt-1.5 h-2 w-2 rounded-full shrink-0"
