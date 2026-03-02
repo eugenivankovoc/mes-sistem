@@ -2,10 +2,12 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
+import { useIsTablet } from "@/hooks/use-mobile";
 
 const SIDEBAR_STORAGE_KEY = "sidebar_collapsed";
 
-function getDefaultOpen(): boolean {
+function getDefaultOpen(isTablet: boolean): boolean {
+  if (isTablet) return false; // collapsed by default on tablet
   try {
     return localStorage.getItem(SIDEBAR_STORAGE_KEY) !== "true";
   } catch {
@@ -14,6 +16,8 @@ function getDefaultOpen(): boolean {
 }
 
 export function ManagerLayout() {
+  const isTablet = useIsTablet();
+
   const handleOpenChange = (open: boolean) => {
     try {
       localStorage.setItem(SIDEBAR_STORAGE_KEY, String(!open));
@@ -23,7 +27,7 @@ export function ManagerLayout() {
   };
 
   return (
-    <SidebarProvider defaultOpen={getDefaultOpen()} onOpenChange={handleOpenChange}>
+    <SidebarProvider defaultOpen={getDefaultOpen(isTablet)} onOpenChange={handleOpenChange}>
       <div className="flex h-screen overflow-hidden w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">

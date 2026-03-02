@@ -1,3 +1,4 @@
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { format, isPast, isToday, parseISO } from "date-fns";
 import { ArrowUpDown, Pencil, Copy, ArrowRight, ClipboardList, AlertTriangle, Search } from "lucide-react";
@@ -52,7 +53,7 @@ function getAnimationClass(type: RowAnimation | undefined) {
   }
 }
 
-export function OrdersTable({
+export const OrdersTable = React.memo(function OrdersTable({
   orders, selected, onSelect, onSelectAll,
   sortColumn, sortDirection, onSort, onEdit, onDuplicate,
   isLoading, onCreateClick, onClearFilters, hasActiveFilters,
@@ -73,8 +74,11 @@ export function OrdersTable({
               onCheckedChange={(v) => onSelectAll(!!v)}
             />
           </TableHead>
-          {visibleColumns.map((col) => (
-            <TableHead key={col.key}>
+          {visibleColumns.map((col) => {
+            // Hide created_at on tablet, hide created_at + due_date on mobile
+            const hideClass = col.key === "created_at" ? "hide-on-tablet" : col.key === "parts_count" ? "hide-on-mobile" : "";
+            return (
+            <TableHead key={col.key} className={hideClass}>
               <button
                 className="inline-flex items-center gap-1 text-table-header-text hover:text-foreground"
                 onClick={() => onSort(col.key)}
@@ -83,7 +87,8 @@ export function OrdersTable({
                 <ArrowUpDown className={`h-3.5 w-3.5 ${sortColumn === col.key ? "text-primary" : ""}`} />
               </button>
             </TableHead>
-          ))}
+            );
+          })}
           <TableHead className="text-right w-[120px]">Radnje</TableHead>
         </TableRow>
       </TableHeader>
@@ -157,10 +162,11 @@ export function OrdersTable({
                 </TableCell>
 
                 {visibleColumns.map((col) => {
+                  const hideClass = col.key === "created_at" ? "hide-on-tablet" : col.key === "parts_count" ? "hide-on-mobile" : "";
                   switch (col.key) {
                     case "order_number":
                       return (
-                        <TableCell key={col.key}>
+                        <TableCell key={col.key} className={hideClass}>
                           <div className="flex items-center gap-2">
                             <div>
                               <div className="flex items-center gap-1.5">
@@ -186,7 +192,7 @@ export function OrdersTable({
                       );
                     case "customer_name":
                       return (
-                        <TableCell key={col.key} className="w-[160px]">
+                        <TableCell key={col.key} className={`w-[160px] ${hideClass}`}>
                           {order.customer_name ? (
                             <span className="text-sm">{order.customer_name}</span>
                           ) : (
@@ -196,19 +202,19 @@ export function OrdersTable({
                       );
                     case "status":
                       return (
-                        <TableCell key={col.key} className="w-[140px]">
+                        <TableCell key={col.key} className={`w-[140px] ${hideClass}`}>
                           <OrderStatusBadge status={order.status} />
                         </TableCell>
                       );
                     case "created_at":
                       return (
-                        <TableCell key={col.key} className="w-[120px] text-sm">
+                        <TableCell key={col.key} className={`w-[120px] text-sm ${hideClass}`}>
                           {fmtDate(order.created_at)}
                         </TableCell>
                       );
                     case "due_date":
                       return (
-                        <TableCell key={col.key} className="w-[120px]">
+                        <TableCell key={col.key} className={`w-[120px] ${hideClass}`}>
                           {order.due_date ? (
                             <span
                               className={`inline-flex items-center gap-1 text-sm ${
@@ -229,7 +235,7 @@ export function OrdersTable({
                       );
                     case "parts_count":
                       return (
-                        <TableCell key={col.key} className="w-[80px] text-center">
+                        <TableCell key={col.key} className={`w-[80px] text-center ${hideClass}`}>
                           {order.parts_total === 0 ? (
                             <span className="text-sm text-muted-foreground">0</span>
                           ) : (
@@ -246,7 +252,7 @@ export function OrdersTable({
                         </TableCell>
                       );
                     default:
-                      return <TableCell key={col.key} />;
+                      return <TableCell key={col.key} className={hideClass} />;
                   }
                 })}
 
@@ -275,4 +281,4 @@ export function OrdersTable({
     </Table>
     </div>
   );
-}
+});

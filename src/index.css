@@ -143,3 +143,80 @@
     font-family: var(--font-sans);
   }
 }
+
+/* ── Responsive: hide columns on tablet/mobile ── */
+@media (max-width: 1279px) {
+  .hide-on-tablet { display: none !important; }
+}
+@media (max-width: 767px) {
+  .hide-on-mobile { display: none !important; }
+}
+
+/* ── Full-width modals on mobile ── */
+@media (max-width: 639px) {
+  [data-radix-popper-content-wrapper] [role="dialog"] {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+}
+
+/* ── Print styles ── */
+@media print {
+  /* Hide chrome */
+  nav, aside, header,
+  [data-sidebar], .sidebar,
+  [class*="TopBar"], [class*="topbar"],
+  [class*="ActionButton"], [class*="action-button"],
+  button, .no-print {
+    display: none !important;
+  }
+
+  /* Reset layout */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Flatten multi-column layout */
+  .flex.gap-5 {
+    display: block !important;
+  }
+  .flex.gap-5 > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: avoid;
+    margin-bottom: 16pt;
+  }
+
+  /* Expand all accordions / collapsibles */
+  [data-state="closed"] > [data-radix-collapsible-content],
+  details:not([open]) > * {
+    display: block !important;
+    height: auto !important;
+  }
+
+  /* Tables full width */
+  table {
+    width: 100% !important;
+    min-width: unset !important;
+    font-size: 10pt;
+  }
+
+  /* Remove shadows and borders for cleaner print */
+  .shadow, [class*="shadow"] {
+    box-shadow: none !important;
+  }
+
+  /* Page breaks */
+  .page-break-before { page-break-before: always; }
+  h2, h3 { page-break-after: avoid; }
+  tr { page-break-inside: avoid; }
+}
