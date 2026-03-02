@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -194,6 +195,11 @@ export function UsersTab() {
                       <div>
                         <p className="text-sm font-medium text-foreground leading-tight">
                           {u.full_name || "—"}
+                          {!u.last_sign_in_at && (
+                            <Badge variant="outline" className="ml-2 text-[10px] px-1.5 py-0 border-amber-300 bg-amber-50 text-amber-700">
+                              Pozvan
+                            </Badge>
+                          )}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {u.email}
