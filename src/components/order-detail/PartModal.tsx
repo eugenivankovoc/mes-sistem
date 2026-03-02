@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useConfirmBeforeClose } from "@/hooks/useConfirmBeforeClose";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import {
   Dialog,
   DialogContent,
@@ -105,6 +107,10 @@ export function PartModal({ open, onOpenChange, part, suggestedNumber }: PartMod
   const watchEdging = form.watch("edging");
   const watchCnc = form.watch("cnc");
 
+  const isDirty = form.formState.isDirty;
+  const { guardedOpenChange, showGuard, confirmClose, cancelClose } =
+    useConfirmBeforeClose(isDirty, onOpenChange);
+
   useEffect(() => {
     if (open) {
       form.reset({
@@ -130,7 +136,8 @@ export function PartModal({ open, onOpenChange, part, suggestedNumber }: PartMod
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={guardedOpenChange}>
       <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Uredi dio" : "Novi dio"}</DialogTitle>
@@ -274,7 +281,7 @@ export function PartModal({ open, onOpenChange, part, suggestedNumber }: PartMod
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => guardedOpenChange(false)}>
                 Odustani
               </Button>
               <Button type="submit">{isEdit ? "Spremi" : "Dodaj"}</Button>
@@ -283,5 +290,7 @@ export function PartModal({ open, onOpenChange, part, suggestedNumber }: PartMod
         </Form>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesDialog open={showGuard} onConfirm={confirmClose} onCancel={cancelClose} />
+    </>
   );
 }
