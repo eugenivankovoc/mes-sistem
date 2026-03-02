@@ -113,25 +113,43 @@ export default function WorkstationViewPage() {
     },
   });
 
+  // ── Map workstation type → requires_* column ──
+  const requiresColumnMap: Record<string, string> = {
+    cutting: "requires_cutting",
+    edgebanding: "requires_edgebanding",
+    cnc: "requires_cnc",
+    drilling: "requires_drilling",
+    sorting: "requires_sorting",
+    assembly: "requires_assembly",
+    quality: "requires_quality_check",
+    packaging: "requires_packaging",
+  };
+
+  const wsType = workstation?.type ?? null;
+  const requiresColumn = wsType ? requiresColumnMap[wsType] ?? null : null;
+
   // ── Fetch parts (60s when empty, 15s otherwise) ──
-  const { data: parts = [], isLoading: partsLoading } = useQuery({
-    queryKey: ["workstation-parts", id],
-    enabled: !!id && !!workstation,
+  const { data: parts = [], isLoading: partsLoading, error: partsError } = useQuery({
+    queryKey: ["workstation-parts", id, requiresColumn],
+    enabled: !!id && !!workstation && !!requiresColumn,
     refetchInterval: (query) => (query.state.data as PartRow[] | undefined)?.length === 0 ? 60_000 : 15_000,
     queryFn: async () => {
-      const { data: rawParts, error: partsError } = await supabase
+      // 1. Get all parts from released/in_production orders where requires_{type} = true
+      const { data: rawParts, error: partsErr } = await supabase
         .from("parts")
         .select(`id, part_number, name, material, length, width, thickness, quantity, status, article_id,
           edge_top, edge_bottom, edge_left, edge_right, cnc_program, is_rework,
+          requires_cutting, requires_edgebanding, requires_cnc, requires_drilling,
+          requires_sorting, requires_assembly, requires_quality_check, requires_packaging,
           articles!inner( id, order_id, orders!inner( id, order_number, order_name, status, priority, due_date ) )`)
-        .eq("current_workstation_id", id!)
-        .in("status", ["pending", "in_progress"])
         .eq("is_rework", false);
 
-      if (partsError) throw partsError;
+      if (partsErr) throw partsErr;
       if (!rawParts?.length) return [];
 
+      // 2. Filter by requires_* column and released/in_production orders
       const filtered = rawParts.filter((p: any) => {
+        if (!p[requiresColumn!]) return false;
         const os = p.articles?.orders?.status;
         return os === "released" || os === "in_production";
       });
@@ -139,9 +157,10 @@ export default function WorkstationViewPage() {
       const partIds = filtered.map((p: any) => p.id);
       if (!partIds.length) return [];
 
+      // 3. Exclude parts that already have feedback for this operation_type
       const { data: doneFeedback } = await supabase
         .from("part_feedback").select("part_id")
-        .eq("workstation_id", id!).eq("feedback_type", "done")
+        .eq("operation_type", wsType!)
         .in("part_id", partIds);
 
       const doneSet = new Set((doneFeedback ?? []).map((f) => f.part_id));
@@ -160,6 +179,10 @@ export default function WorkstationViewPage() {
       }));
     },
   });
+
+  // ── Debug counts ──
+  const debugOrderCount = useMemo(() => new Set(parts.map(p => p.order_id)).size, [parts]);
+  const debugPartsCount = parts.length;
 
   // ── Realtime: part_feedback inserts ──
   useEffect(() => {
@@ -479,7 +502,25 @@ export default function WorkstationViewPage() {
         )}
       </div>
 
+      {/* DEBUG INFO - remove after testing */}
+      {workstation && (
+        <div className="px-4 py-1.5 text-xs font-mono text-muted-foreground" style={{ background: "#FFFDE7", borderBottom: "1px solid #FFF9C4" }}>
+          Workstation type: {wsType ?? "NULL"} | Orders found: {debugOrderCount} | Parts found: {debugPartsCount}
+        </div>
+      )}
+
+      {/* Null type error */}
+      {workstation && !requiresColumn && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6">
+          <AlertTriangle className="h-10 w-10 text-destructive" />
+          <p className="text-base font-medium text-foreground">
+            Greška: Radnoj stanici nije dodijeljen tip. Kontaktirajte administratora.
+          </p>
+        </div>
+      )}
+
       {/* Parts list */}
+      {requiresColumn && (
       <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB" }}>
         {partsLoading || wsLoading ? (
           <div className="flex flex-col items-center justify-center flex-1 p-12 gap-3">
@@ -544,6 +585,7 @@ export default function WorkstationViewPage() {
           </>
         )}
       </div>
+      )}
 
       {/* QR Scanner FAB */}
       {orderGroups.length > 0 && (
