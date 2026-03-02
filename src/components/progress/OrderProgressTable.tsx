@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +60,6 @@ function StatusBadge({ status }: { status: string }) {
 
 function WsDot({ done, total }: { done: number; total: number }) {
   if (total === 0) {
-    // gray - not needed
     return (
       <div className="flex items-center justify-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-muted-foreground/30 shrink-0" />
@@ -87,43 +88,46 @@ function WsDot({ done, total }: { done: number; total: number }) {
   );
 }
 
+function truncate(str: string, max: number) {
+  return str.length > max ? str.slice(0, max) + "…" : str;
+}
+
 export function OrderProgressTable({ data, isLoading }: Props) {
   const navigate = useNavigate();
 
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full" />
-        ))}
-      </div>
-    );
-  }
+  // Always fetch workstations so headers render even with no orders
+  const { data: workstations } = useQuery({
+    queryKey: ["workstations-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("workstations")
+        .select("id, code, name")
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  if (!data?.length) {
-    return (
-      <div className="py-10 text-center text-muted-foreground">
-        Nema aktivnih naloga
-      </div>
-    );
-  }
-
-  const wsCols = data[0]?.workstations ?? [];
+  const wsCols = workstations ?? [];
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="min-w-[140px]">Naziv naloga</TableHead>
-          <TableHead className="min-w-[100px]">Status</TableHead>
-          <TableHead className="min-w-[80px] text-center">Uk. dijelova</TableHead>
+          <TableHead className="min-w-[200px] w-[200px]">Naziv naloga</TableHead>
+          <TableHead className="min-w-[120px] w-[120px]">Status</TableHead>
+          <TableHead className="min-w-[100px] w-[100px] text-center">Uk. dijelova</TableHead>
           {wsCols.map((ws) => {
             const Icon = getWsIcon(ws.code);
             return (
-              <TableHead key={ws.id} className="text-center px-1 min-w-[72px]">
+              <TableHead key={ws.id} className="text-center px-1 min-w-[90px] w-[90px]">
                 <div className="flex flex-col items-center gap-0.5">
                   {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground" />}
-                  <span className="truncate max-w-[64px] block text-[10px]">{ws.code}</span>
+                  <span className="block text-[10px]" title={ws.name}>
+                    {truncate(ws.code, 8)}
+                  </span>
                 </div>
               </TableHead>
             );
@@ -131,28 +135,59 @@ export function OrderProgressTable({ data, isLoading }: Props) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {data.map((order) => (
-          <TableRow
-            key={order.id}
-            className="cursor-pointer"
-            onClick={() => navigate(`/orders/${order.id}`)}
-          >
-            <TableCell className="font-semibold text-primary hover:underline">
-              {order.orderNumber}
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <TableRow key={i}>
+              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+              <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+              <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+              {wsCols.map((ws) => (
+                <TableCell key={ws.id} className="text-center px-1">
+                  <Skeleton className="h-5 w-12 mx-auto" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))
+        ) : !data?.length ? (
+          <TableRow>
+            <TableCell
+              colSpan={3 + wsCols.length}
+              className="text-center py-10 text-muted-foreground"
+            >
+              Nema aktivnih naloga
             </TableCell>
-            <TableCell>
-              <StatusBadge status={order.status} />
-            </TableCell>
-            <TableCell className="text-center text-sm text-muted-foreground">
-              {order.totalParts}
-            </TableCell>
-            {order.workstations.map((ws) => (
-              <TableCell key={ws.id} className="text-center px-1">
-                <WsDot done={ws.done} total={ws.total} />
-              </TableCell>
-            ))}
           </TableRow>
-        ))}
+        ) : (
+          data.map((order) => {
+            // Build a map from ws id -> progress for this order
+            const wsMap = new Map(order.workstations.map((w) => [w.id, w]));
+            return (
+              <TableRow
+                key={order.id}
+                className="cursor-pointer"
+                onClick={() => navigate(`/orders/${order.id}`)}
+              >
+                <TableCell className="font-semibold text-primary hover:underline">
+                  {order.orderNumber}
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={order.status} />
+                </TableCell>
+                <TableCell className="text-center text-sm text-muted-foreground">
+                  {order.totalParts}
+                </TableCell>
+                {wsCols.map((ws) => {
+                  const progress = wsMap.get(ws.id);
+                  return (
+                    <TableCell key={ws.id} className="text-center px-1">
+                      <WsDot done={progress?.done ?? 0} total={progress?.total ?? 0} />
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            );
+          })
+        )}
       </TableBody>
     </Table>
   );
