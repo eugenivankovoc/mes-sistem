@@ -1,4 +1,5 @@
 import { Cell } from "recharts";
+import { BarChart3 as BarChartIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -34,15 +35,30 @@ export function ReportsWorkstationsTab({ data, isLoading }: Props) {
   if (isLoading) {
     return (
       <div className="space-y-6 mt-4">
-        <Skeleton className="h-[300px] w-full" />
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-border last:border-0">
+              <Skeleton className="h-4 w-[120px]" />
+              <Skeleton className="h-4 w-[60px] ml-auto" />
+              <Skeleton className="h-4 w-[60px]" />
+              <Skeleton className="h-4 w-[60px]" />
+              <Skeleton className="h-4 w-[80px]" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="h-[280px] w-full rounded-lg" />
       </div>
     );
   }
 
   if (!data?.length) {
     return (
-      <div className="mt-4 rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-muted-foreground">Nema podataka za odabrani period</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center mt-4">
+        <div className="rounded-full bg-muted p-4 mb-4">
+          <BarChartIcon className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground mb-1">Nema podataka</h3>
+        <p className="text-sm text-muted-foreground">Nema podataka za odabrani period.</p>
       </div>
     );
   }
