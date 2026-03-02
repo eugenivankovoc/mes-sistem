@@ -1,21 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useInviteUser, useWorkstations } from "@/hooks/useAdminUsers";
+import { useConfirmBeforeClose } from "@/hooks/useConfirmBeforeClose";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
@@ -32,11 +26,16 @@ export function InviteUserModal({ open, onOpenChange }: InviteUserModalProps) {
   const { data: workstations } = useWorkstations();
   const inviteUser = useInviteUser();
 
+  const isDirty = useMemo(
+    () => !!(email.trim() || fullName.trim() || role !== "operator" || workstationId),
+    [email, fullName, role, workstationId]
+  );
+
+  const { guardedOpenChange, showGuard, confirmClose, cancelClose } =
+    useConfirmBeforeClose(isDirty, onOpenChange);
+
   const resetForm = () => {
-    setEmail("");
-    setFullName("");
-    setRole("operator");
-    setWorkstationId("");
+    setEmail(""); setFullName(""); setRole("operator"); setWorkstationId("");
   };
 
   const handleSubmit = () => {
@@ -44,7 +43,6 @@ export function InviteUserModal({ open, onOpenChange }: InviteUserModalProps) {
       toast.error("Email i ime su obavezni");
       return;
     }
-
     inviteUser.mutate(
       {
         email: email.trim(),
@@ -64,7 +62,8 @@ export function InviteUserModal({ open, onOpenChange }: InviteUserModalProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={guardedOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>Pozovi novog korisnika</DialogTitle>
@@ -73,31 +72,16 @@ export function InviteUserModal({ open, onOpenChange }: InviteUserModalProps) {
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="invite-email">Email *</Label>
-            <Input
-              id="invite-email"
-              type="email"
-              placeholder="korisnik@firma.hr"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <Input id="invite-email" type="email" placeholder="korisnik@firma.hr" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="invite-name">Ime i prezime *</Label>
-            <Input
-              id="invite-name"
-              placeholder="Ivan Horvat"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
+            <Input id="invite-name" placeholder="Ivan Horvat" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </div>
-
           <div className="space-y-2">
             <Label>Uloga *</Label>
             <Select value={role} onValueChange={setRole}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="administrator">Administrator</SelectItem>
                 <SelectItem value="planner">Planer</SelectItem>
@@ -105,19 +89,14 @@ export function InviteUserModal({ open, onOpenChange }: InviteUserModalProps) {
               </SelectContent>
             </Select>
           </div>
-
           {role === "operator" && (
             <div className="space-y-2">
               <Label>Radna stanica</Label>
               <Select value={workstationId} onValueChange={setWorkstationId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Odaberi radnu stanicu" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Odaberi radnu stanicu" /></SelectTrigger>
                 <SelectContent>
                   {workstations?.map((ws) => (
-                    <SelectItem key={ws.id} value={ws.id}>
-                      {ws.name}
-                    </SelectItem>
+                    <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -126,14 +105,14 @@ export function InviteUserModal({ open, onOpenChange }: InviteUserModalProps) {
         </div>
 
         <DialogFooter className="border-t border-border pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Odustani
-          </Button>
+          <Button variant="outline" onClick={() => guardedOpenChange(false)}>Odustani</Button>
           <Button onClick={handleSubmit} disabled={inviteUser.isPending}>
             {inviteUser.isPending ? "Šaljem…" : "Pošalji pozivnicu"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesDialog open={showGuard} onConfirm={confirmClose} onCancel={cancelClose} />
+    </>
   );
 }

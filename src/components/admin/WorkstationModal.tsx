@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useConfirmBeforeClose } from "@/hooks/useConfirmBeforeClose";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +51,16 @@ export function WorkstationModal({ open, onOpenChange, workstation }: Workstatio
   const [type, setType] = useState("");
   const [isActive, setIsActive] = useState(true);
 
+  const isDirty = useMemo(() => {
+    if (isEdit && workstation) {
+      return name !== workstation.name || type !== (workstation.type || "") || isActive !== workstation.is_active;
+    }
+    return !!(name || type);
+  }, [name, type, isActive, workstation, isEdit]);
+
+  const { guardedOpenChange, showGuard, confirmClose, cancelClose } =
+    useConfirmBeforeClose(isDirty, onOpenChange);
+
   useEffect(() => {
     if (open) {
       if (workstation) {
@@ -67,13 +79,8 @@ export function WorkstationModal({ open, onOpenChange, workstation }: Workstatio
     mutationFn: async () => {
       if (!name.trim() || !type) throw new Error("Naziv i tip su obavezni");
 
-      // Generate code from type
       const codeMap: Record<string, string> = {
-        cutting: "REZ",
-        edgebanding: "KANT",
-        cnc: "CNC",
-        quality: "QK",
-        packaging: "PAK",
+        cutting: "REZ", edgebanding: "KANT", cnc: "CNC", quality: "QK", packaging: "PAK",
       };
 
       if (isEdit && workstation) {
@@ -83,7 +90,6 @@ export function WorkstationModal({ open, onOpenChange, workstation }: Workstatio
           .eq("id", workstation.id);
         if (error) throw error;
       } else {
-        // Get next sort_order
         const { data: existing } = await supabase
           .from("workstations")
           .select("sort_order")
@@ -91,7 +97,6 @@ export function WorkstationModal({ open, onOpenChange, workstation }: Workstatio
           .limit(1);
         const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
 
-        // Generate unique code
         const baseCode = codeMap[type] || type.toUpperCase().slice(0, 4);
         const { data: sameCodes } = await supabase
           .from("workstations")
@@ -100,11 +105,7 @@ export function WorkstationModal({ open, onOpenChange, workstation }: Workstatio
         const code = sameCodes?.length ? `${baseCode}-${String(sameCodes.length + 1).padStart(2, "0")}` : `${baseCode}-01`;
 
         const { error } = await supabase.from("workstations").insert({
-          name: name.trim(),
-          code,
-          type,
-          is_active: isActive,
-          sort_order: nextOrder,
+          name: name.trim(), code, type, is_active: isActive, sort_order: nextOrder,
         });
         if (error) throw error;
       }
@@ -119,7 +120,8 @@ export function WorkstationModal({ open, onOpenChange, workstation }: Workstatio
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={guardedOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Uredi radnu stanicu" : "Dodaj radnu stanicu"}</DialogTitle>
@@ -128,24 +130,16 @@ export function WorkstationModal({ open, onOpenChange, workstation }: Workstatio
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Naziv radne stanice *</Label>
-            <Input
-              placeholder="npr. Kantovanje 1"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <Input placeholder="npr. Kantovanje 1" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
           <div className="space-y-2">
             <Label>Tip stanice *</Label>
             <Select value={type} onValueChange={setType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Odaberi tip" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Odaberi tip" /></SelectTrigger>
               <SelectContent>
                 {typeOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -158,14 +152,14 @@ export function WorkstationModal({ open, onOpenChange, workstation }: Workstatio
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Odustani
-          </Button>
+          <Button variant="outline" onClick={() => guardedOpenChange(false)}>Odustani</Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
             {save.isPending ? "Spremam…" : isEdit ? "Spremi" : "Dodaj"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesDialog open={showGuard} onConfirm={confirmClose} onCancel={cancelClose} />
+    </>
   );
 }
