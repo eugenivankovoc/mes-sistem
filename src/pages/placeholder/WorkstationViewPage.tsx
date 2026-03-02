@@ -3,19 +3,9 @@ import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, X, AlertTriangle, Camera } from "lucide-react";
+import { Search, X, AlertTriangle, Camera, CheckCheck, Folder } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { BulkActionBar } from "@/components/workstation/BulkActionBar";
 import { ReworkModal } from "@/components/workstation/ReworkModal";
@@ -23,6 +13,7 @@ import { QrScannerModal, QrScanResult } from "@/components/workstation/QrScanner
 import { PartRowItem } from "@/components/workstation/PartRowItem";
 import { EmptyState } from "@/components/workstation/EmptyState";
 import { OfflineBanner } from "@/components/workstation/OfflineBanner";
+import { ConfirmAllDialog } from "@/components/workstation/ConfirmAllDialog";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 
 // ── Types ──────────────────────────────────────────────
@@ -39,13 +30,20 @@ interface PartRow {
   article_id: string;
   order_id: string;
   order_number: string;
+  order_name: string | null;
   order_priority: number;
   order_due_date: string | null;
+  edge_top: string | null;
+  edge_bottom: string | null;
+  edge_left: string | null;
+  edge_right: string | null;
+  cnc_program: string | null;
 }
 
 interface OrderGroup {
   order_id: string;
   order_number: string;
+  order_name: string | null;
   order_priority: number;
   order_due_date: string | null;
   parts: PartRow[];
@@ -63,11 +61,23 @@ export default function WorkstationViewPage() {
   const [rowStates, setRowStates] = useState<Record<string, RowState>>({});
   const [reworkPart, setReworkPart] = useState<PartRow | null>(null);
   const [confirmAllOpen, setConfirmAllOpen] = useState(false);
+  const [confirmAllProcessing, setConfirmAllProcessing] = useState(false);
+  const [confirmAllProgress, setConfirmAllProgress] = useState(0);
+  const [confirmAllText, setConfirmAllText] = useState("");
   const [qrOpen, setQrOpen] = useState(false);
   const [realtimeBanner, setRealtimeBanner] = useState<string | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const { isOffline, syncMessage, queuedPartIds, addToQueue, syncQueue } = useOfflineQueue(id);
+
+  // ── Debounced search ──
+  useEffect(() => {
+    clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(searchTimeoutRef.current);
+  }, [search]);
 
   // ── Viewport zoom lock ──
   useEffect(() => {
@@ -97,7 +107,7 @@ export default function WorkstationViewPage() {
     queryKey: ["workstation", id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.from("workstations").select("id, name, code").eq("id", id!).maybeSingle();
+      const { data, error } = await supabase.from("workstations").select("id, name, code, type").eq("id", id!).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -112,9 +122,11 @@ export default function WorkstationViewPage() {
       const { data: rawParts, error: partsError } = await supabase
         .from("parts")
         .select(`id, part_number, name, material, length, width, thickness, quantity, status, article_id,
-          articles!inner( id, order_id, orders!inner( id, order_number, status, priority, due_date ) )`)
+          edge_top, edge_bottom, edge_left, edge_right, cnc_program, is_rework,
+          articles!inner( id, order_id, orders!inner( id, order_number, order_name, status, priority, due_date ) )`)
         .eq("current_workstation_id", id!)
-        .in("status", ["pending", "in_progress"]);
+        .in("status", ["pending", "in_progress"])
+        .eq("is_rework", false);
 
       if (partsError) throw partsError;
       if (!rawParts?.length) return [];
@@ -138,8 +150,13 @@ export default function WorkstationViewPage() {
         id: p.id, part_number: p.part_number, name: p.name, material: p.material,
         length: p.length, width: p.width, thickness: p.thickness, quantity: p.quantity,
         status: p.status, article_id: p.article_id, order_id: p.articles.orders.id,
-        order_number: p.articles.orders.order_number, order_priority: p.articles.orders.priority,
+        order_number: p.articles.orders.order_number,
+        order_name: p.articles.orders.order_name,
+        order_priority: p.articles.orders.priority,
         order_due_date: p.articles.orders.due_date,
+        edge_top: p.edge_top, edge_bottom: p.edge_bottom,
+        edge_left: p.edge_left, edge_right: p.edge_right,
+        cnc_program: p.cnc_program,
       }));
     },
   });
@@ -150,16 +167,13 @@ export default function WorkstationViewPage() {
     const channel = supabase
       .channel(`ws-feedback-${id}`)
       .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "part_feedback",
+        event: "INSERT", schema: "public", table: "part_feedback",
         filter: `workstation_id=eq.${id}`,
       }, (payload: any) => {
         const feedbackPartId = payload.new?.part_id;
         const feedbackType = payload.new?.feedback_type;
         const operatorId = payload.new?.operator_id;
         if (feedbackType === "done" && operatorId !== user?.id && feedbackPartId) {
-          // Another operator confirmed — animate out
           setRowStates((s) => ({ ...s, [feedbackPartId]: "confirmed" }));
           setTimeout(() => {
             setRowStates((s) => ({ ...s, [feedbackPartId]: "removing" }));
@@ -174,21 +188,17 @@ export default function WorkstationViewPage() {
     return () => { supabase.removeChannel(channel); };
   }, [id, user?.id, queryClient]);
 
-  // ── Realtime: orders updates (new releases) ──
+  // ── Realtime: orders updates ──
   useEffect(() => {
     if (!id) return;
     const channel = supabase
       .channel(`ws-orders-${id}`)
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "orders",
-      }, (payload: any) => {
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (payload: any) => {
         const newStatus = payload.new?.status;
         const oldStatus = payload.old?.status;
         if (newStatus === "released" && oldStatus !== "released") {
-          const orderNum = payload.new?.order_number || "?";
-          setRealtimeBanner(`Novi nalog ${orderNum} dodan u vašu listu`);
+          const orderName = payload.new?.order_name || payload.new?.order_number || "?";
+          setRealtimeBanner(`Novi nalog ${orderName} dodan u vašu listu`);
           setTimeout(() => setRealtimeBanner(null), 5000);
           queryClient.invalidateQueries({ queryKey: ["workstation-parts", id] });
         }
@@ -208,16 +218,21 @@ export default function WorkstationViewPage() {
 
   // ── Group + sort + filter ──
   const orderGroups = useMemo((): OrderGroup[] => {
-    const filtered = search.trim()
+    const filtered = debouncedSearch.trim()
       ? parts.filter((p) =>
-          p.order_number.toLowerCase().includes(search.toLowerCase()) ||
-          p.name.toLowerCase().includes(search.toLowerCase()))
+          (p.order_name || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          p.order_number.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          p.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
       : parts;
 
     const grouped: Record<string, OrderGroup> = {};
     for (const part of filtered) {
       if (!grouped[part.order_id]) {
-        grouped[part.order_id] = { order_id: part.order_id, order_number: part.order_number, order_priority: part.order_priority, order_due_date: part.order_due_date, parts: [] };
+        grouped[part.order_id] = {
+          order_id: part.order_id, order_number: part.order_number,
+          order_name: part.order_name, order_priority: part.order_priority,
+          order_due_date: part.order_due_date, parts: [],
+        };
       }
       grouped[part.order_id].parts.push(part);
     }
@@ -228,15 +243,14 @@ export default function WorkstationViewPage() {
     });
     for (const g of groups) g.parts.sort((a, b) => a.part_number.localeCompare(b.part_number));
     return groups;
-  }, [parts, search]);
+  }, [parts, debouncedSearch]);
 
   const allVisiblePartIds = useMemo(() => orderGroups.flatMap((g) => g.parts.map((p) => p.id)), [orderGroups]);
 
   // ── Confirm single part ──
-  const confirmPart = useCallback(async (partId: string) => {
+  const confirmPart = useCallback(async (partId: string, method: string = "click") => {
     if (!user || !id) return;
 
-    // Offline: queue locally
     if (isOffline) {
       addToQueue({ part_id: partId, workstation_id: id, operator_id: user.id, timestamp: Date.now(), feedback_type: "done" });
       toast.success("✓ Potvrda spremljena lokalno", { duration: 2000 });
@@ -245,7 +259,10 @@ export default function WorkstationViewPage() {
 
     setRowStates((s) => ({ ...s, [partId]: "confirming" }));
     const { error } = await supabase.from("part_feedback").insert({
-      part_id: partId, workstation_id: id, operator_id: user.id, feedback_type: "done" as const,
+      part_id: partId, workstation_id: id, operator_id: user.id,
+      feedback_type: "done" as const,
+      operation_type: workstation?.type ?? null,
+      feedback_method: method,
     });
 
     if (error) {
@@ -264,9 +281,61 @@ export default function WorkstationViewPage() {
       }, 300);
     }, 500);
     toast.success("✓ Dio potvrđen", { duration: 2000 });
-  }, [user, id, isOffline, addToQueue, queryClient]);
+  }, [user, id, isOffline, addToQueue, queryClient, workstation?.type]);
 
-  // ── Bulk confirm ──
+  // ── Confirm all with progress ──
+  const confirmAllSequential = useCallback(async () => {
+    if (!user || !id || !allVisiblePartIds.length) return;
+    setConfirmAllProcessing(true);
+    setConfirmAllProgress(0);
+    setConfirmAllText(`Potvrđivanje ${allVisiblePartIds.length} dijelova...`);
+
+    let errors = 0;
+    let errorName = "";
+
+    for (let i = 0; i < allVisiblePartIds.length; i++) {
+      const pid = allVisiblePartIds[i];
+      setRowStates((s) => ({ ...s, [pid]: "confirming" }));
+
+      const { error } = await supabase.from("part_feedback").insert({
+        part_id: pid, workstation_id: id, operator_id: user.id,
+        feedback_type: "done" as const,
+        operation_type: workstation?.type ?? null,
+        feedback_method: "bulk",
+      });
+
+      if (error) {
+        errors++;
+        const p = parts.find((x) => x.id === pid);
+        errorName = p?.name ?? pid;
+        setRowStates((s) => ({ ...s, [pid]: "idle" }));
+      } else {
+        setRowStates((s) => ({ ...s, [pid]: "confirmed" }));
+        setTimeout(() => {
+          setRowStates((s) => ({ ...s, [pid]: "removing" }));
+          setTimeout(() => {
+            setRowStates((s) => { const n = { ...s }; delete n[pid]; return n; });
+          }, 300);
+        }, 200);
+      }
+
+      setConfirmAllProgress(Math.round(((i + 1) / allVisiblePartIds.length) * 100));
+    }
+
+    setConfirmAllProcessing(false);
+    setConfirmAllOpen(false);
+    setConfirmAllProgress(0);
+    queryClient.invalidateQueries({ queryKey: ["workstation-parts", id] });
+    queryClient.invalidateQueries({ queryKey: ["pending-parts", id] });
+
+    if (errors > 0) {
+      toast.warning(`Greška pri potvrdi dijela ${errorName}. Ostatak je potvrđen.`, { duration: 4000 });
+    } else {
+      toast.success(`Svih ${allVisiblePartIds.length} dijelova potvrđeno!`, { duration: 4000 });
+    }
+  }, [user, id, allVisiblePartIds, parts, queryClient, workstation?.type]);
+
+  // ── Bulk confirm selected ──
   const [bulkPending, setBulkPending] = useState(false);
 
   const confirmMultiple = useCallback(async (partIds: string[]) => {
@@ -283,7 +352,12 @@ export default function WorkstationViewPage() {
 
     setRowStates((s) => { const n = { ...s }; partIds.forEach((pid) => (n[pid] = "confirming")); return n; });
 
-    const inserts = partIds.map((pid) => ({ part_id: pid, workstation_id: id, operator_id: user.id, feedback_type: "done" as const }));
+    const inserts = partIds.map((pid) => ({
+      part_id: pid, workstation_id: id, operator_id: user.id,
+      feedback_type: "done" as const,
+      operation_type: workstation?.type ?? null,
+      feedback_method: "bulk",
+    }));
     const { error } = await supabase.from("part_feedback").insert(inserts);
     setBulkPending(false);
 
@@ -300,21 +374,27 @@ export default function WorkstationViewPage() {
       setTimeout(() => { setRowStates({}); setSelectedParts(new Set()); queryClient.invalidateQueries({ queryKey: ["workstation-parts", id] }); }, 300);
     }, 500);
     toast.success(`${partIds.length} dijelova potvrđeno`, { duration: 2000 });
-  }, [user, id, isOffline, addToQueue, queryClient]);
+  }, [user, id, isOffline, addToQueue, queryClient, workstation?.type]);
 
   // ── Rework ──
   const [reworkPending, setReworkPending] = useState(false);
 
-  const handleReworkSubmit = useCallback(async (reason: string) => {
+  const handleReworkSubmit = useCallback(async (reason: string, photoUrl: string | null) => {
     if (!user || !id || !reworkPart) return;
     setReworkPending(true);
 
     const { error } = await supabase.from("part_feedback").insert({
       part_id: reworkPart.id, workstation_id: id, operator_id: user.id,
       feedback_type: "rework" as const, rework_reason: reason,
+      photo_url: photoUrl,
+      operation_type: workstation?.type ?? null,
+      feedback_method: "click",
     });
 
     if (error) { setReworkPending(false); toast.error("Greška pri prijavi dorade"); return; }
+
+    // Update part is_rework
+    await supabase.from("parts").update({ is_rework: true } as any).eq("id", reworkPart.id).single();
 
     try {
       const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["administrator", "planner"]);
@@ -329,29 +409,23 @@ export default function WorkstationViewPage() {
     } catch { /* non-critical */ }
 
     setReworkPending(false);
-    toast.success("Dorada prijavljena. Planer je obaviješten.");
+    toast.success("Dorada prijavljena. Planer je obaviješten.", { duration: 4000 });
     setReworkPart(null);
     queryClient.invalidateQueries({ queryKey: ["workstation-parts", id] });
     queryClient.invalidateQueries({ queryKey: ["pending-parts", id] });
-  }, [user, id, reworkPart, queryClient]);
+  }, [user, id, reworkPart, queryClient, workstation?.type]);
 
   // ── QR scan handler ──
   const handleQrScan = useCallback((data: QrScanResult): "not_found" | "already_done" | void => {
-    // Check if part exists in current list
     let found: PartRow | undefined;
     if (data.id) found = parts.find((p) => p.id === data.id);
     if (!found && data.pn) found = parts.find((p) => p.part_number === data.pn);
 
     if (found) {
-      // Case 1: found in list — close scanner, auto-confirm
       setQrOpen(false);
-      confirmPart(found.id);
+      confirmPart(found.id, "scan");
       return;
     }
-
-    // Check if already confirmed (not in list but was scanned)
-    // We can't distinguish "not on this station" from "already confirmed" without an extra query
-    // So we return "not_found" to keep scanner open with overlay
     return "not_found";
   }, [parts, confirmPart]);
 
@@ -375,6 +449,8 @@ export default function WorkstationViewPage() {
     );
   }
 
+  const hasBulkBar = selectedParts.size > 0;
+
   return (
     <div className="flex flex-col flex-1">
       {/* Offline / sync banner */}
@@ -388,83 +464,107 @@ export default function WorkstationViewPage() {
       )}
 
       {/* Search bar */}
-      <div className="bg-card px-4 py-3 border-b flex items-center gap-3 border-border">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pretraži po imenu naloga..." className="pl-9 pr-9" />
-          {search && (
-            <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch("")}>
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-        {allVisiblePartIds.length > 0 && (
-          <Button variant="secondary" size="sm" onClick={() => setConfirmAllOpen(true)} className="shrink-0 text-xs">
-            Potvrdi sve ({allVisiblePartIds.length})
-          </Button>
+      <div className="bg-card flex items-center gap-3" style={{ height: 48, padding: "0 16px", borderBottom: "1px solid #F3F4F6" }}>
+        <Search className="h-[18px] w-[18px] text-muted-foreground shrink-0" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Pretraži po imenu naloga..."
+          className="flex-1 bg-transparent border-none outline-none text-[15px] text-foreground placeholder:text-muted-foreground"
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="p-1 text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
         )}
       </div>
 
       {/* Parts list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB" }}>
         {partsLoading || wsLoading ? (
           <div className="flex items-center justify-center p-12">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
         ) : orderGroups.length === 0 ? (
-          <EmptyState hasSearch={!!search.trim()} searchTerm={search} />
+          <EmptyState hasSearch={!!debouncedSearch.trim()} searchTerm={search} workstationName={workstation?.name ?? ""} />
         ) : (
-          orderGroups.map((group) => (
-            <div key={group.order_id}>
-              {/* Order group header */}
-              <div className="flex items-center justify-between px-4 py-2 sticky top-0 z-10 bg-muted border-b border-border">
-                <div className="flex items-center gap-3">
-                  <span className="text-[13px] font-bold text-foreground">{group.order_number}</span>
-                  {group.order_due_date && (
-                    <span className="text-xs text-muted-foreground">
-                      Rok: {new Date(group.order_due_date).toLocaleDateString("hr-HR")}
-                    </span>
-                  )}
-                  {group.order_priority > 0 && (
-                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-destructive/10 text-destructive">
-                      Prioritet {group.order_priority}
-                    </span>
-                  )}
-                </div>
-                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
-                  {group.parts.length} dijelova
-                </span>
+          <>
+            {/* Potvrdi sve button */}
+            {allVisiblePartIds.length > 0 && (
+              <div className="flex justify-end px-4 py-2">
+                <button
+                  onClick={() => setConfirmAllOpen(true)}
+                  className="h-9 px-3.5 rounded-md border flex items-center gap-1.5 text-[13px] font-medium text-foreground hover:bg-muted transition-colors"
+                  style={{ borderColor: "#E5E7EB" }}
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  Potvrdi sve
+                </button>
               </div>
+            )}
 
-              {/* Part rows */}
-              {group.parts.map((part) => (
-                <PartRowItem
-                  key={part.id}
-                  part={part}
-                  state={rowStates[part.id] ?? "idle"}
-                  isSelected={selectedParts.has(part.id)}
-                  isOffline={isOffline}
-                  isOfflineQueued={queuedPartIds.has(part.id)}
-                  onToggle={togglePart}
-                  onConfirm={confirmPart}
-                  onRework={() => setReworkPart(part)}
-                />
-              ))}
-            </div>
-          ))
+            {orderGroups.map((group) => (
+              <div key={group.order_id}>
+                {/* Order group header */}
+                <div
+                  className="flex items-center justify-between px-4 sticky top-0 z-10"
+                  style={{ height: 36, background: "#F0F4F8" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Folder className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-[13px] font-semibold text-foreground">
+                      {group.order_name || group.order_number}
+                    </span>
+                    <span className="text-[12px] text-muted-foreground">{group.order_number}</span>
+                  </div>
+                  <span
+                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium bg-muted text-muted-foreground"
+                  >
+                    {group.parts.length} dijelova
+                  </span>
+                </div>
+
+                {/* Part rows */}
+                {group.parts.map((part) => (
+                  <PartRowItem
+                    key={part.id}
+                    part={part}
+                    state={rowStates[part.id] ?? "idle"}
+                    isSelected={selectedParts.has(part.id)}
+                    isOffline={isOffline}
+                    isOfflineQueued={queuedPartIds.has(part.id)}
+                    onToggle={togglePart}
+                    onConfirm={(pid) => confirmPart(pid, "click")}
+                    onRework={() => setReworkPart(part)}
+                  />
+                ))}
+              </div>
+            ))}
+          </>
         )}
       </div>
 
-      {/* QR Scanner button */}
-      <div className="flex justify-center py-3" style={{ paddingBottom: selectedParts.size > 0 ? 80 : 12 }}>
-        <button
-          onClick={() => setQrOpen(true)}
-          className="h-[52px] w-[200px] rounded-[26px] bg-primary text-primary-foreground font-bold text-sm shadow-lg hover:opacity-90 transition-opacity active:scale-[0.98] flex items-center justify-center gap-2"
+      {/* QR Scanner FAB */}
+      {orderGroups.length > 0 && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-40 transition-all duration-300"
+          style={{ bottom: hasBulkBar ? 88 : 24 }}
         >
-          <Camera className="h-5 w-5" />
-          Skeniraj QR
-        </button>
-      </div>
+          <button
+            onClick={() => setQrOpen(true)}
+            className="h-[52px] px-7 rounded-[28px] text-white font-semibold text-[15px] flex items-center gap-2 transition-all active:scale-[0.98]"
+            style={{
+              backgroundColor: "hsl(214 69% 39%)",
+              boxShadow: "0 4px 12px rgba(30,95,168,0.4)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "hsl(214 72% 32%)")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "hsl(214 69% 39%)")}
+          >
+            <Camera className="h-5 w-5" />
+            Skeniraj QR
+          </button>
+        </div>
+      )}
 
       {/* Bulk action bar */}
       <BulkActionBar count={selectedParts.size} onConfirm={() => confirmMultiple([...selectedParts])} onClear={() => setSelectedParts(new Set())} isPending={bulkPending} />
@@ -473,23 +573,28 @@ export default function WorkstationViewPage() {
       <QrScannerModal open={qrOpen} onClose={() => setQrOpen(false)} onScan={handleQrScan} />
 
       {/* Rework modal */}
-      <ReworkModal open={!!reworkPart} onOpenChange={(open) => !open && setReworkPart(null)} partName={reworkPart?.name ?? ""} orderNumber={reworkPart?.order_number ?? ""} onSubmit={handleReworkSubmit} isPending={reworkPending} />
+      <ReworkModal
+        open={!!reworkPart}
+        onOpenChange={(open) => !open && setReworkPart(null)}
+        partName={reworkPart?.name ?? ""}
+        partId={reworkPart?.id ?? ""}
+        orderId={reworkPart?.order_id ?? ""}
+        orderNumber={reworkPart?.order_number ?? ""}
+        onSubmit={handleReworkSubmit}
+        isPending={reworkPending}
+      />
 
       {/* Confirm all dialog */}
-      <AlertDialog open={confirmAllOpen} onOpenChange={setConfirmAllOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Potvrdi sve dijelove</AlertDialogTitle>
-            <AlertDialogDescription>Potvrditi sve vidljive dijelove ({allVisiblePartIds.length})?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Odustani</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmMultiple(allVisiblePartIds)} style={{ backgroundColor: "hsl(142 71% 37%)" }} className="text-white hover:opacity-90">
-              Potvrdi sve
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmAllDialog
+        open={confirmAllOpen}
+        onOpenChange={setConfirmAllOpen}
+        count={allVisiblePartIds.length}
+        workstationName={workstation?.name ?? ""}
+        onConfirm={confirmAllSequential}
+        isProcessing={confirmAllProcessing}
+        progress={confirmAllProgress}
+        progressText={confirmAllText}
+      />
     </div>
   );
 }
