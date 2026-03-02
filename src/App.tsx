@@ -10,6 +10,9 @@ import { PublicRoute } from "@/components/PublicRoute";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ManagerLayout } from "@/layouts/ManagerLayout";
 import { AssistLayout } from "@/layouts/AssistLayout";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import React, { Suspense } from "react";
+import { Loader2 } from "lucide-react";
 
 import LoginPage from "@/pages/LoginPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
@@ -17,16 +20,85 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NoWorkstationPage from "@/pages/NoWorkstationPage";
 import NotFound from "@/pages/NotFound";
 
-import OrdersPage from "@/pages/placeholder/OrdersPage";
-import OrderDetailPage from "@/pages/placeholder/OrderDetailPage";
-import ArchivePage from "@/pages/placeholder/ArchivePage";
-import ProgressPage from "@/pages/placeholder/ProgressPage";
-import BatchesPage from "@/pages/placeholder/BatchesPage";
-import ReportsPage from "@/pages/placeholder/ReportsPage";
-import AdminPage from "@/pages/placeholder/AdminPage";
-import WorkstationViewPage from "@/pages/placeholder/WorkstationViewPage";
+// Lazy-loaded route pages
+const OrdersPage = React.lazy(() => import("@/pages/placeholder/OrdersPage"));
+const OrderDetailPage = React.lazy(() => import("@/pages/placeholder/OrderDetailPage"));
+const ArchivePage = React.lazy(() => import("@/pages/placeholder/ArchivePage"));
+const ProgressPage = React.lazy(() => import("@/pages/placeholder/ProgressPage"));
+const BatchesPage = React.lazy(() => import("@/pages/placeholder/BatchesPage"));
+const ReportsPage = React.lazy(() => import("@/pages/placeholder/ReportsPage"));
+const AdminPage = React.lazy(() => import("@/pages/placeholder/AdminPage"));
+const WorkstationViewPage = React.lazy(() => import("@/pages/placeholder/WorkstationViewPage"));
 
 const queryClient = new QueryClient();
+
+function RouteSuspense({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function AppShell() {
+  useKeyboardShortcuts();
+
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      <Route path="/no-workstation" element={<AuthGuard><NoWorkstationPage /></AuthGuard>} />
+
+      {/* Manager/Planner routes */}
+      <Route element={
+        <AuthGuard>
+          <ProtectedRoute allowedRoles={["administrator", "planner"]}>
+            <ManagerLayout />
+          </ProtectedRoute>
+        </AuthGuard>
+      }>
+        <Route path="/orders" element={<RouteSuspense><OrdersPage /></RouteSuspense>} />
+        <Route path="/orders/:id" element={<RouteSuspense><OrderDetailPage /></RouteSuspense>} />
+        <Route path="/archive" element={<RouteSuspense><ArchivePage /></RouteSuspense>} />
+        <Route path="/progress" element={<RouteSuspense><ProgressPage /></RouteSuspense>} />
+        <Route path="/batches" element={<RouteSuspense><BatchesPage /></RouteSuspense>} />
+        <Route path="/reports" element={<RouteSuspense><ReportsPage /></RouteSuspense>} />
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={["administrator"]} showForbidden>
+            <RouteSuspense><AdminPage /></RouteSuspense>
+          </ProtectedRoute>
+        } />
+      </Route>
+
+      {/* Operator routes */}
+      <Route element={
+        <AuthGuard>
+          <ProtectedRoute allowedRoles={["operator"]}>
+            <AssistLayout />
+          </ProtectedRoute>
+        </AuthGuard>
+      }>
+        <Route path="/workstation/:id" element={
+          <ProtectedRoute allowedRoles={["operator"]} requireOwnWorkstation>
+            <RouteSuspense><WorkstationViewPage /></RouteSuspense>
+          </ProtectedRoute>
+        } />
+      </Route>
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -36,64 +108,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <PageTitleProvider>
-            <Routes>
-              {/* Public routes – redirect to home if already logged in */}
-              <Route path="/login" element={
-                <PublicRoute><LoginPage /></PublicRoute>
-              } />
-              <Route path="/forgot-password" element={
-                <PublicRoute><ForgotPasswordPage /></PublicRoute>
-              } />
-              {/* Reset-password: allow even when logged in (recovery flow) */}
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/" element={<Navigate to="/login" replace />} />
-
-              {/* No-workstation error page – auth required, no layout */}
-              <Route path="/no-workstation" element={
-                <AuthGuard>
-                  <NoWorkstationPage />
-                </AuthGuard>
-              } />
-
-              {/* Manager/Planner routes – ManagerLayout */}
-              <Route element={
-                <AuthGuard>
-                  <ProtectedRoute allowedRoles={["administrator", "planner"]}>
-                    <ManagerLayout />
-                  </ProtectedRoute>
-                </AuthGuard>
-              }>
-                <Route path="/orders" element={<OrdersPage />} />
-                <Route path="/orders/:id" element={<OrderDetailPage />} />
-                <Route path="/archive" element={<ArchivePage />} />
-                <Route path="/progress" element={<ProgressPage />} />
-                <Route path="/batches" element={<BatchesPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/admin" element={
-                  <ProtectedRoute allowedRoles={["administrator"]} showForbidden>
-                    <AdminPage />
-                  </ProtectedRoute>
-                } />
-              </Route>
-
-              {/* Operator routes – AssistLayout */}
-              <Route element={
-                <AuthGuard>
-                  <ProtectedRoute allowedRoles={["operator"]}>
-                    <AssistLayout />
-                  </ProtectedRoute>
-                </AuthGuard>
-              }>
-                <Route path="/workstation/:id" element={
-                  <ProtectedRoute allowedRoles={["operator"]} requireOwnWorkstation>
-                    <WorkstationViewPage />
-                  </ProtectedRoute>
-                } />
-              </Route>
-
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppShell />
           </PageTitleProvider>
         </AuthProvider>
       </BrowserRouter>
