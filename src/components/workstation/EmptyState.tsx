@@ -5,9 +5,10 @@ import confetti from "canvas-confetti";
 interface EmptyStateProps {
   hasSearch: boolean;
   searchTerm: string;
+  workstationName: string;
 }
 
-export function EmptyState({ hasSearch, searchTerm }: EmptyStateProps) {
+export function EmptyState({ hasSearch, searchTerm, workstationName }: EmptyStateProps) {
   const confettiFired = useRef(false);
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export function EmptyState({ hasSearch, searchTerm }: EmptyStateProps) {
         particleCount: 30,
         spread: 60,
         origin: { y: 0.6 },
-        colors: ["#16A34A", "#22C55E", "#4ADE80", "#86EFAC"],
+        colors: ["#16A34A", "#22C55E", "#4ADE80", "#1E5FA8"],
       });
       if (Date.now() < end) requestAnimationFrame(fire);
     };
@@ -40,15 +41,18 @@ export function EmptyState({ hasSearch, searchTerm }: EmptyStateProps) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 p-12 gap-4">
-      <div className="h-20 w-20 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(142 71% 45% / 0.15)" }}>
-        <CheckCircle className="h-10 w-10" style={{ color: "hsl(142 71% 45%)" }} />
+    <div className="flex flex-col items-center justify-center flex-1 p-12 gap-5">
+      <div
+        className="h-[100px] w-[100px] rounded-full flex items-center justify-center"
+        style={{ backgroundColor: "#DCFCE7" }}
+      >
+        <CheckCircle className="h-14 w-14" style={{ color: "#16A34A" }} />
       </div>
-      <h2 className="text-xl font-bold" style={{ color: "hsl(142 71% 45%)" }}>
+      <h2 className="text-[28px] font-bold" style={{ color: "#15803D" }}>
         Sve završeno!
       </h2>
-      <p className="text-muted-foreground text-sm text-center">
-        Odlično! Nema više dijelova za ovu stanicu.
+      <p className="text-muted-foreground text-base text-center">
+        Odlično! Nema više dijelova za stanicu {workstationName}.
       </p>
     </div>
   );
