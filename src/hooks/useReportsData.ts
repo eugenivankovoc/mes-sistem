@@ -42,6 +42,7 @@ export interface OperatorSummary {
   reworkCount: number;
   avgPerDay: number;
   mainWorkstation: string;
+  lastActivity: string | null;
 }
 
 // ─── ORDER SUMMARY ──────────────────────────────────────
@@ -54,6 +55,7 @@ export interface OrderSummary {
   reworkParts: number;
   dueDate: string | null;
   completedAt: string | null;
+  createdAt: string;
   isLate: boolean;
 }
 
@@ -214,12 +216,13 @@ export function useOperatorReport(range: ReportsDateRange) {
       const numDays = Math.max(days.length, 1);
 
       // Group by operator
-      const operatorMap = new Map<string, { done: number; rework: number; wsCount: Map<string, number> }>();
+      const operatorMap = new Map<string, { done: number; rework: number; wsCount: Map<string, number>; lastTs: string | null }>();
       (feedback || []).forEach((f) => {
-        const entry = operatorMap.get(f.operator_id) || { done: 0, rework: 0, wsCount: new Map() };
+        const entry = operatorMap.get(f.operator_id) || { done: 0, rework: 0, wsCount: new Map(), lastTs: null };
         if (f.feedback_type === "done") entry.done++;
         else entry.rework++;
         entry.wsCount.set(f.workstation_id, (entry.wsCount.get(f.workstation_id) || 0) + 1);
+        if (!entry.lastTs || f.created_at > entry.lastTs) entry.lastTs = f.created_at;
         operatorMap.set(f.operator_id, entry);
       });
 
@@ -238,6 +241,7 @@ export function useOperatorReport(range: ReportsDateRange) {
             reworkCount: data.rework,
             avgPerDay: Math.round((data.done / numDays) * 10) / 10,
             mainWorkstation: wsMap.get(mainWsId) || "—",
+            lastActivity: data.lastTs,
           };
         })
         .sort((a, b) => b.partsInPeriod - a.partsInPeriod);
@@ -256,7 +260,7 @@ export function useOrderReport(range: ReportsDateRange) {
       // Orders that were active (created or in-production) during the period
       const { data: orders } = await supabase
         .from("orders")
-        .select("id, order_number, customer_id, due_date, completed_at, status")
+        .select("id, order_number, customer_id, due_date, completed_at, status, created_at")
         .gte("created_at", fromISO)
         .order("created_at", { ascending: false });
 
@@ -294,7 +298,9 @@ export function useOrderReport(range: ReportsDateRange) {
 
       return orders.map((o) => {
         const counts = orderPartsMap[o.id] || { total: 0, completed: 0, rework: 0 };
-        const isLate = o.due_date && !o.completed_at && o.due_date < todayISO;
+        const isLate = o.due_date && o.completed_at
+          ? o.completed_at.split("T")[0] > o.due_date
+          : o.due_date && !o.completed_at && o.due_date < todayISO;
         return {
           id: o.id,
           orderNumber: o.order_number,
@@ -304,6 +310,7 @@ export function useOrderReport(range: ReportsDateRange) {
           reworkParts: counts.rework,
           dueDate: o.due_date,
           completedAt: o.completed_at,
+          createdAt: o.created_at,
           isLate: !!isLate,
         };
       });

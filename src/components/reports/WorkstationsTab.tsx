@@ -1,9 +1,10 @@
+import { Cell } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
-  TableCell,
+  TableCell as TCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -23,6 +24,11 @@ interface Props {
   data?: WorkstationSummary[];
   isLoading: boolean;
 }
+
+const BAR_COLORS = [
+  "#1E5FA8", "#E07B00", "#2D9C5A", "#9B59B6",
+  "#E74C3C", "#17A2B8", "#F39C12", "#1ABC9C",
+];
 
 export function ReportsWorkstationsTab({ data, isLoading }: Props) {
   if (isLoading) {
@@ -47,7 +53,6 @@ export function ReportsWorkstationsTab({ data, isLoading }: Props) {
 
   return (
     <div className="space-y-6 mt-4">
-      {/* Table */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <Table>
           <TableHeader>
@@ -62,32 +67,31 @@ export function ReportsWorkstationsTab({ data, isLoading }: Props) {
           <TableBody>
             {data.map((ws, idx) => (
               <TableRow key={ws.id} className={idx % 2 === 1 ? "bg-[hsl(var(--table-row-stripe))]" : ""}>
-                <TableCell className="font-medium">{ws.name}</TableCell>
-                <TableCell className="text-right">{ws.partsInPeriod}</TableCell>
-                <TableCell className="text-right">{ws.partsToday}</TableCell>
-                <TableCell className="text-right">{ws.avgPerDay}</TableCell>
-                <TableCell className="text-muted-foreground">{ws.busiestDay}</TableCell>
+                <TCell className="font-medium">{ws.name}</TCell>
+                <TCell className="text-right">{ws.partsInPeriod}</TCell>
+                <TCell className="text-right">{ws.partsToday}</TCell>
+                <TCell className="text-right">{ws.avgPerDay}</TCell>
+                <TCell className="text-muted-foreground">{ws.busiestDay}</TCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
 
-      {/* Horizontal bar chart */}
       {chartData.length > 0 && (
         <Card>
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold text-foreground mb-4">Usporedba po stanicama</h3>
-            <div style={{ height: Math.max(200, chartData.length * 40 + 40) }}>
+            <div style={{ height: Math.max(200, chartData.length * 44 + 40) }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ left: 80 }}>
+                <BarChart data={chartData} layout="vertical" margin={{ left: 100 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                   <YAxis
                     type="category"
                     dataKey="name"
                     tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }}
-                    width={80}
+                    width={100}
                   />
                   <Tooltip
                     contentStyle={{
@@ -98,7 +102,11 @@ export function ReportsWorkstationsTab({ data, isLoading }: Props) {
                     }}
                     formatter={(value: number) => [value, "Dijelovi"]}
                   />
-                  <Bar dataKey="partsInPeriod" fill="#1E5FA8" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="partsInPeriod" radius={[0, 4, 4, 0]}>
+                    {chartData.map((_, idx) => (
+                      <Cell key={idx} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>

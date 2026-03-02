@@ -83,32 +83,42 @@ export default function ReportsPage() {
   };
 
   const handleExportCsv = () => {
+    const fd = format(appliedRange.from, "ddMMyyyy");
+    const td = format(appliedRange.to, "ddMMyyyy");
+
     if (activeTab === "overview" && overviewQuery.data) {
       downloadCsv(
-        "pregled.csv",
-        ["Datum", "Dijelovi"],
-        overviewQuery.data.dailyParts.map((d) => [d.date, String(d.count)])
+        `Izvjestaj_Pregled_${fd}_${td}.csv`,
+        ["Datum", "Dijelovi", "7-dnevni prosjek"],
+        overviewQuery.data.dailyParts.map((d) => [d.date, String(d.count), String(d.rolling7 ?? "")])
       );
     } else if (activeTab === "workstations" && workstationsQuery.data) {
       downloadCsv(
-        "po-stanici.csv",
+        `Izvjestaj_PoStanici_${fd}_${td}.csv`,
         ["Radna stanica", "Ukupno", "Danas", "Prosj/dan", "Najaktivniji dan"],
         workstationsQuery.data.map((w) => [w.name, String(w.partsInPeriod), String(w.partsToday), String(w.avgPerDay), w.busiestDay])
       );
     } else if (activeTab === "operators" && operatorsQuery.data) {
       downloadCsv(
-        "po-operateru.csv",
-        ["Operater", "Dijelovi", "Dorade", "Prosj/dan", "Stanica"],
-        operatorsQuery.data.map((o) => [o.name, String(o.partsInPeriod), String(o.reworkCount), String(o.avgPerDay), o.mainWorkstation])
+        `Izvjestaj_PoOperateru_${fd}_${td}.csv`,
+        ["Operater", "Dijelovi ukupno", "Prosj/smjena", "Najaktivnija stanica", "Zadnja aktivnost"],
+        operatorsQuery.data.map((o) => [o.name, String(o.partsInPeriod), String(o.avgPerDay), o.mainWorkstation, o.lastActivity || "—"])
       );
     } else if (activeTab === "orders" && ordersQuery.data) {
+      const completed = ordersQuery.data.filter((o) => o.completedAt);
       downloadCsv(
-        "nalozi.csv",
-        ["Nalog", "Klijent", "Ukupno dijelova", "Završeno", "Dorada", "Rok", "Završen"],
-        ordersQuery.data.map((o) => [
-          o.orderNumber, o.customer, String(o.totalParts), String(o.completedParts),
-          String(o.reworkParts), o.dueDate || "—", o.completedAt?.split("T")[0] || "—"
-        ])
+        `Izvjestaj_Nalozi_${fd}_${td}.csv`,
+        ["Naziv naloga", "Kupac", "Ukupno dijelova", "Datum završetka", "Na vrijeme", "Dana do završetka"],
+        completed.map((o) => {
+          const isOnTime = o.dueDate && o.completedAt ? o.completedAt.split("T")[0] <= o.dueDate : null;
+          const days = o.completedAt ? String(Math.round((new Date(o.completedAt).getTime() - new Date(o.createdAt).getTime()) / 86400000)) : "—";
+          return [
+            o.orderNumber, o.customer, String(o.totalParts),
+            o.completedAt ? format(new Date(o.completedAt), "dd.MM.yyyy") : "—",
+            isOnTime === null ? "—" : isOnTime ? "Da" : "Ne",
+            days,
+          ];
+        })
       );
     }
   };
