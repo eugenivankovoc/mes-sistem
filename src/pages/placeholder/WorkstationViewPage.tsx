@@ -482,8 +482,9 @@ export default function WorkstationViewPage() {
       {/* Parts list */}
       <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB" }}>
         {partsLoading || wsLoading ? (
-          <div className="flex items-center justify-center p-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <div className="flex flex-col items-center justify-center flex-1 p-12 gap-3">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Učitavam radnu stanicu...</p>
           </div>
         ) : orderGroups.length === 0 ? (
           <EmptyState hasSearch={!!debouncedSearch.trim()} searchTerm={search} workstationName={workstation?.name ?? ""} />

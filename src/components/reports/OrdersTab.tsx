@@ -1,3 +1,4 @@
+import { BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -19,8 +20,17 @@ interface Props {
 export function ReportsOrdersTab({ data, isLoading }: Props) {
   if (isLoading) {
     return (
-      <div className="mt-4">
-        <Skeleton className="h-[300px] w-full" />
+      <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-border last:border-0">
+            <Skeleton className="h-4 w-[120px]" />
+            <Skeleton className="h-4 w-[80px]" />
+            <Skeleton className="h-4 w-[50px] ml-auto" />
+            <Skeleton className="h-4 w-[80px]" />
+            <Skeleton className="h-4 w-[40px]" />
+            <Skeleton className="h-4 w-[50px]" />
+          </div>
+        ))}
       </div>
     );
   }
@@ -30,8 +40,12 @@ export function ReportsOrdersTab({ data, isLoading }: Props) {
 
   if (!completed.length) {
     return (
-      <div className="mt-4 rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-muted-foreground">Nema završenih naloga za odabrani period</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center mt-4">
+        <div className="rounded-full bg-muted p-4 mb-4">
+          <BarChart3 className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground mb-1">Nema podataka</h3>
+        <p className="text-sm text-muted-foreground">Nema završenih naloga za odabrani period.</p>
       </div>
     );
   }

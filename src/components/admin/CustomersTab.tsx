@@ -135,8 +135,15 @@ export function CustomersTab() {
               ))
             ) : !customers?.length ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  Nema klijenata
+                <TableCell colSpan={6} className="py-0">
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="rounded-full bg-muted p-4 mb-4">
+                      <Plus className="h-10 w-10 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Nema klijenata</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Dodajte prvog klijenta za upravljanje nalozima.</p>
+                    <Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}>Dodaj klijenta</Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
