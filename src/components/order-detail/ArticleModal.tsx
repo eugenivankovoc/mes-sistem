@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useConfirmBeforeClose } from "@/hooks/useConfirmBeforeClose";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +55,10 @@ export function ArticleModal({ open, onOpenChange, article, suggestedNumber }: A
     },
   });
 
+  const isDirty = form.formState.isDirty;
+  const { guardedOpenChange, showGuard, confirmClose, cancelClose } =
+    useConfirmBeforeClose(isDirty, onOpenChange);
+
   useEffect(() => {
     if (open) {
       form.reset({
@@ -74,7 +80,8 @@ export function ArticleModal({ open, onOpenChange, article, suggestedNumber }: A
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={guardedOpenChange}>
       <DialogContent className="max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Uredi artikl" : "Novi artikl"}</DialogTitle>
@@ -142,7 +149,7 @@ export function ArticleModal({ open, onOpenChange, article, suggestedNumber }: A
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => guardedOpenChange(false)}>
                 Odustani
               </Button>
               <Button type="submit">{isEdit ? "Spremi" : "Dodaj"}</Button>
@@ -151,5 +158,7 @@ export function ArticleModal({ open, onOpenChange, article, suggestedNumber }: A
         </Form>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesDialog open={showGuard} onConfirm={confirmClose} onCancel={cancelClose} />
+    </>
   );
 }
