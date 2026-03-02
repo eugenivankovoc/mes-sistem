@@ -255,6 +255,7 @@ export type Database = {
           due_date: string | null
           id: string
           notes: string | null
+          order_name: string | null
           order_number: string
           priority: number
           released_at: string | null
@@ -271,6 +272,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           notes?: string | null
+          order_name?: string | null
           order_number: string
           priority?: number
           released_at?: string | null
@@ -287,6 +289,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           notes?: string | null
+          order_name?: string | null
           order_number?: string
           priority?: number
           released_at?: string | null
@@ -314,8 +317,10 @@ export type Database = {
       part_feedback: {
         Row: {
           created_at: string
+          feedback_method: string | null
           feedback_type: Database["public"]["Enums"]["feedback_type"]
           id: string
+          operation_type: string | null
           operator_id: string
           part_id: string
           photo_url: string | null
@@ -324,8 +329,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          feedback_method?: string | null
           feedback_type: Database["public"]["Enums"]["feedback_type"]
           id?: string
+          operation_type?: string | null
           operator_id: string
           part_id: string
           photo_url?: string | null
@@ -334,8 +341,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          feedback_method?: string | null
           feedback_type?: Database["public"]["Enums"]["feedback_type"]
           id?: string
+          operation_type?: string | null
           operator_id?: string
           part_id?: string
           photo_url?: string | null
@@ -362,9 +371,15 @@ export type Database = {
       parts: {
         Row: {
           article_id: string
+          cnc_program: string | null
           created_at: string
           current_workstation_id: string | null
+          edge_bottom: string | null
+          edge_left: string | null
+          edge_right: string | null
+          edge_top: string | null
           id: string
+          is_rework: boolean
           length: number | null
           material: string | null
           name: string
@@ -377,9 +392,15 @@ export type Database = {
         }
         Insert: {
           article_id: string
+          cnc_program?: string | null
           created_at?: string
           current_workstation_id?: string | null
+          edge_bottom?: string | null
+          edge_left?: string | null
+          edge_right?: string | null
+          edge_top?: string | null
           id?: string
+          is_rework?: boolean
           length?: number | null
           material?: string | null
           name: string
@@ -392,9 +413,15 @@ export type Database = {
         }
         Update: {
           article_id?: string
+          cnc_program?: string | null
           created_at?: string
           current_workstation_id?: string | null
+          edge_bottom?: string | null
+          edge_left?: string | null
+          edge_right?: string | null
+          edge_top?: string | null
           id?: string
+          is_rework?: boolean
           length?: number | null
           material?: string | null
           name?: string
@@ -487,6 +514,7 @@ export type Database = {
           is_active: boolean
           name: string
           sort_order: number
+          type: string | null
           updated_at: string
         }
         Insert: {
@@ -497,6 +525,7 @@ export type Database = {
           is_active?: boolean
           name: string
           sort_order?: number
+          type?: string | null
           updated_at?: string
         }
         Update: {
@@ -507,6 +536,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           sort_order?: number
+          type?: string | null
           updated_at?: string
         }
         Relationships: []
