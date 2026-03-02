@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -14,6 +13,7 @@ import {
   Wrench,
   CheckCircle,
   Package,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import type { OrderProgress } from "@/hooks/useProgressData";
@@ -63,7 +63,7 @@ function WsDot({ done, total }: { done: number; total: number }) {
     return (
       <div className="flex items-center justify-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-muted-foreground/30 shrink-0" />
-        <span className="text-xs text-muted-foreground">0/0</span>
+        <span className="text-xs text-muted-foreground">–</span>
       </div>
     );
   }
@@ -92,10 +92,14 @@ function truncate(str: string, max: number) {
   return str.length > max ? str.slice(0, max) + "…" : str;
 }
 
+/* ── Shared cell styles ─────────────────────────────────── */
+const stickyBase = "bg-card group-hover/row:bg-primary/5 transition-colors duration-150";
+const thBase =
+  "h-11 px-4 text-left align-middle font-semibold text-xs uppercase tracking-wider text-table-header-text";
+
 export function OrderProgressTable({ data, isLoading }: Props) {
   const navigate = useNavigate();
 
-  // Always fetch workstations so headers render even with no orders
   const { data: workstations } = useQuery({
     queryKey: ["workstations-list"],
     queryFn: async () => {
@@ -111,84 +115,119 @@ export function OrderProgressTable({ data, isLoading }: Props) {
   });
 
   const wsCols = workstations ?? [];
+  const totalCols = 3 + wsCols.length;
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="min-w-[200px] w-[200px]">Naziv naloga</TableHead>
-          <TableHead className="min-w-[120px] w-[120px]">Status</TableHead>
-          <TableHead className="min-w-[100px] w-[100px] text-center">Uk. dijelova</TableHead>
-          {wsCols.map((ws) => {
-            const Icon = getWsIcon(ws.code);
-            return (
-              <TableHead key={ws.id} className="text-center px-1 min-w-[90px] w-[90px]">
-                <div className="flex flex-col items-center gap-0.5">
-                  {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground" />}
-                  <span className="block text-[10px]" title={ws.name}>
-                    {truncate(ws.code, 8)}
+    <div className="relative w-full overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto">
+        <table className="w-full caption-bottom text-sm" style={{ minWidth: 200 + 120 + 100 + wsCols.length * 90 }}>
+          {/* ── Group header row ──────────────────────────── */}
+          <thead>
+            <tr className="border-b border-border">
+              {/* Spans the 3 fixed columns */}
+              <th colSpan={3} className={cn(thBase, "sticky left-0 z-20", stickyBase)} />
+              {wsCols.length > 0 && (
+                <th
+                  colSpan={wsCols.length}
+                  className={cn(thBase, "text-center normal-case tracking-normal font-semibold text-xs text-muted-foreground")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Radne stanice
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </span>
-                </div>
-              </TableHead>
-            );
-          })}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <TableRow key={i}>
-              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-              <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
-              {wsCols.map((ws) => (
-                <TableCell key={ws.id} className="text-center px-1">
-                  <Skeleton className="h-5 w-12 mx-auto" />
-                </TableCell>
-              ))}
-            </TableRow>
-          ))
-        ) : !data?.length ? (
-          <TableRow>
-            <TableCell
-              colSpan={3 + wsCols.length}
-              className="text-center py-10 text-muted-foreground"
-            >
-              Nema aktivnih naloga
-            </TableCell>
-          </TableRow>
-        ) : (
-          data.map((order) => {
-            // Build a map from ws id -> progress for this order
-            const wsMap = new Map(order.workstations.map((w) => [w.id, w]));
-            return (
-              <TableRow
-                key={order.id}
-                className="cursor-pointer"
-                onClick={() => navigate(`/orders/${order.id}`)}
-              >
-                <TableCell className="font-semibold text-primary hover:underline">
-                  {order.orderNumber}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={order.status} />
-                </TableCell>
-                <TableCell className="text-center text-sm text-muted-foreground">
-                  {order.totalParts}
-                </TableCell>
-                {wsCols.map((ws) => {
-                  const progress = wsMap.get(ws.id);
-                  return (
-                    <TableCell key={ws.id} className="text-center px-1">
-                      <WsDot done={progress?.done ?? 0} total={progress?.total ?? 0} />
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            );
-          })
-        )}
-      </TableBody>
-    </Table>
+                </th>
+              )}
+            </tr>
+
+            {/* ── Column headers ─────────────────────────── */}
+            <tr className="border-b border-border">
+              <th className={cn(thBase, "sticky left-0 z-20 min-w-[200px] w-[200px]", stickyBase)}>
+                Naziv naloga
+              </th>
+              <th className={cn(thBase, "sticky left-[200px] z-20 min-w-[120px] w-[120px]", stickyBase)}>
+                Status
+              </th>
+              <th className={cn(thBase, "sticky left-[320px] z-20 min-w-[100px] w-[100px] text-center", stickyBase)}>
+                Uk. dijelova
+              </th>
+              {wsCols.map((ws) => {
+                const Icon = getWsIcon(ws.code);
+                return (
+                  <th key={ws.id} className={cn(thBase, "text-center px-1 min-w-[90px] w-[90px]")}>
+                    <div className="flex flex-col items-center gap-0.5">
+                      {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground" />}
+                      <span className="block text-[10px]" title={ws.name}>
+                        {truncate(ws.code, 8)}
+                      </span>
+                    </div>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+
+          <tbody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} className="border-b border-border last:border-b-0">
+                  <td className={cn("px-4 py-3.5 sticky left-0 z-10", stickyBase)}>
+                    <Skeleton className="h-5 w-28" />
+                  </td>
+                  <td className={cn("px-4 py-3.5 sticky left-[200px] z-10", stickyBase)}>
+                    <Skeleton className="h-5 w-20" />
+                  </td>
+                  <td className={cn("px-4 py-3.5 text-center sticky left-[320px] z-10", stickyBase)}>
+                    <Skeleton className="h-5 w-10 mx-auto" />
+                  </td>
+                  {wsCols.map((ws) => (
+                    <td key={ws.id} className="px-1 py-3.5 text-center">
+                      <Skeleton className="h-5 w-12 mx-auto" />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : !data?.length ? (
+              <tr>
+                <td
+                  colSpan={totalCols}
+                  className="text-center py-10 text-muted-foreground"
+                >
+                  Nema aktivnih naloga
+                </td>
+              </tr>
+            ) : (
+              data.map((order) => {
+                const wsMap = new Map(order.workstations.map((w) => [w.id, w]));
+                return (
+                  <tr
+                    key={order.id}
+                    className="group/row border-b border-border last:border-b-0 cursor-pointer hover:bg-primary/5 transition-colors duration-150"
+                    onClick={() => navigate(`/orders/${order.id}`)}
+                  >
+                    <td className={cn("px-4 py-3.5 font-semibold text-primary hover:underline sticky left-0 z-10", stickyBase)}>
+                      {order.orderNumber}
+                    </td>
+                    <td className={cn("px-4 py-3.5 sticky left-[200px] z-10", stickyBase)}>
+                      <StatusBadge status={order.status} />
+                    </td>
+                    <td className={cn("px-4 py-3.5 text-center text-sm text-muted-foreground sticky left-[320px] z-10", stickyBase)}>
+                      {order.totalParts}
+                    </td>
+                    {wsCols.map((ws) => {
+                      const progress = wsMap.get(ws.id);
+                      return (
+                        <td key={ws.id} className="px-1 py-3.5 text-center">
+                          <WsDot done={progress?.done ?? 0} total={progress?.total ?? 0} />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
