@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Factory, Eye, EyeOff, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { translateSupabaseError } from "@/lib/supabaseErrors";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,7 +12,6 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const { signIn } = useAuth();
-  const navigate = useNavigate();
 
   const validate = () => {
     const errors: { email?: string; password?: string } = {};
@@ -28,46 +27,27 @@ export default function LoginPage() {
     return Object.keys(errors).length === 0;
   };
 
-  const redirectAfterLogin = async (userId: string) => {
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
-
-    if (roleData?.role === "operator") {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("workstation_id")
-        .eq("user_id", userId)
-        .single();
-
-      if (profileData?.workstation_id) {
-        navigate(`/workstation/${profileData.workstation_id}`, { replace: true });
-      } else {
-        navigate("/no-workstation", { replace: true });
-      }
-    } else {
-      navigate("/orders", { replace: true });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!validate()) return;
 
     setLoading(true);
-    const { error: authError } = await signIn(email.trim(), password);
-    if (authError) {
-      setError("Pogrešan email ili lozinka. Pokušajte ponovo.");
-      setLoading(false);
-      return;
-    }
+    try {
+      const { error: authError } = await signIn(email.trim(), password);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) await redirectAfterLogin(user.id);
-    setLoading(false);
+      if (authError) {
+        setError(
+          authError.message.toLowerCase().includes("invalid login credentials")
+            ? "Pogrešan email ili lozinka. Pokušajte ponovo."
+            : translateSupabaseError(authError)
+        );
+      }
+    } catch (err) {
+      setError(translateSupabaseError(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
