@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { translateSupabaseError } from "@/lib/supabaseErrors";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -37,24 +38,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   const loadProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
-    const [profileRes, roleRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", userId).single(),
-      supabase.from("user_roles").select("role").eq("user_id", userId).single(),
-    ]);
+    try {
+      const [profileRes, roleRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", userId).single(),
+        supabase.from("user_roles").select("role").eq("user_id", userId).single(),
+      ]);
 
-    if (!profileRes.data) return null;
+      if (profileRes.error) throw profileRes.error;
+      if (roleRes.error && roleRes.error.code !== "PGRST116") throw roleRes.error;
+      if (!profileRes.data) return null;
 
-    const p: UserProfile = {
-      id: profileRes.data.id,
-      user_id: profileRes.data.user_id,
-      email: profileRes.data.email,
-      full_name: profileRes.data.full_name,
-      role: roleRes.data?.role ?? null,
-      workstation_id: profileRes.data.workstation_id,
-    };
+      const p: UserProfile = {
+        id: profileRes.data.id,
+        user_id: profileRes.data.user_id,
+        email: profileRes.data.email,
+        full_name: profileRes.data.full_name,
+        role: roleRes.data?.role ?? null,
+        workstation_id: profileRes.data.workstation_id,
+      };
 
-    setProfile(p);
-    return p;
+      setProfile(p);
+      return p;
+    } catch (error) {
+      setProfile(null);
+      toast.error(translateSupabaseError(error));
+      return null;
+    }
   }, []);
 
   const redirectByRole = useCallback((p: UserProfile) => {
@@ -110,6 +119,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }, 0);
         }
+
+        setLoading(false);
       }
     );
 
@@ -121,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (existingSession?.user) {
         await loadProfile(existingSession.user.id);
       }
+    }).finally(() => {
       setLoading(false);
     });
 
